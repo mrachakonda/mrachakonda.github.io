@@ -33,12 +33,22 @@ Promise.all([
     });
 
    
+
 const joinedData = products.map(product => ({
+
     ...product,
+
+    stars: +product.stars,
+    price: +product.price,
+    reviews: +product.reviews,
+    boughtInLastMonth: +product.boughtInLastMonth,
+
     category_name:
         categoryMap[product.category_id]?.category_name || "Unknown"
+
 }));
 
+/*
 
     // Make available in browser console
     window.products = products;
@@ -47,7 +57,7 @@ const joinedData = products.map(product => ({
 
     console.log("Joined Data");
     console.log(joinedData.slice(0, 5));
-
+*/
     document.getElementById("status").innerHTML =
         `Loaded ${joinedData.length} joined products`;
 
