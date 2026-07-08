@@ -1,77 +1,164 @@
 
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <title>Amazon Narrative Visualization</title>
 
     <script src="https://d3js.org/d3.v7.min.js"></script>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 30px;
+        }
+
+        #status {
+            margin-bottom: 20px;
+            color: green;
+            font-weight: bold;
+        }
+
+        svg {
+            border: 1px solid #ddd;
+        }
+
+        .annotation {
+            fill: red;
+            font-weight: bold;
+            font-size: 14px;
+        }
+    </style>
 </head>
 
 <body>
 
-<h1>Amazon Narrative Visualization</h1>
+    <h1>What Makes an Amazon Product Successful?</h1>
 
-<div id="status">Loading...</div>
-<div id="error"></div>
+    <div id="status">Loading...</div>
 
-<script>
+    <svg id="chart" width="900" height="500"></svg>
 
-Promise.all([
-    d3.csv("data/products.csv"),
-    d3.csv("data/categories.csv")
-])
-.then(([products, categories]) => {
+    <script>
 
-    //console.log("Products", products);
-    //console.log("Categories", categories);
+        Promise.all([
+            d3.csv("data/products.csv"),
+            d3.csv("data/categories.csv")
+        ])
+            .then(([products, categories]) => {
 
-    const categoryMap = {};
+                const categoryMap = {};
 
-    categories.forEach(category => {
-        categoryMap[category.id] = category;
-    });
+                categories.forEach(category => {
+                    categoryMap[category.id] = category;
+                });
 
-   
+                const joinedData = products.map(product => ({
 
-const joinedData = products.map(product => ({
+                    ...product,
 
-    ...product,
+                    stars: +product.stars,
+                    price: +product.price,
+                    reviews: +product.reviews,
+                    boughtInLastMonth: +product.boughtInLastMonth,
 
-    stars: +product.stars,
-    price: +product.price,
-    reviews: +product.reviews,
-    boughtInLastMonth: +product.boughtInLastMonth,
+                    category_name:
+                        categoryMap[product.category_id]?.category_name || "Unknown"
 
-    category_name:
-        categoryMap[product.category_id]?.category_name || "Unknown"
+                }));
 
-}));
+                document.getElementById("status").innerHTML =
+                    `Loaded ${joinedData.length} products`;
 
-/*
+                drawScatterPlot(joinedData);
 
-    // Make available in browser console
-    window.products = products;
-    window.categories = categories;
-    window.joinedData = joinedData;
+            })
+            .catch(error => {
 
-    console.log("Joined Data");
-    console.log(joinedData.slice(0, 5));
-*/
-    document.getElementById("status").innerHTML =
-        `Loaded ${joinedData.length} joined products`;
+                console.error(error);
 
-})
-.catch(error => {
+                document.getElementById("status").innerHTML =
+                    "Error loading CSV files";
 
-    console.error(error);
+            });
 
-    document.getElementById("error").innerHTML =
-        "Failed to load CSV files";
 
-});
 
-</script>
+        function drawScatterPlot(data) {
+
+            const svg = d3.select("#chart");
+
+            svg.selectAll("*").remove();
+
+            const width = 900;
+            const height = 500;
+
+            const margin = {
+                top: 60,
+                right: 40,
+                bottom: 60,
+                left: 80
+            };
+
+            const x = d3.scaleLinear()
+                .domain([
+                    d3.min(data, d => d.stars) - 0.1,
+                    d3.max(data, d => d.stars) + 0.1
+                ])
+                .range([margin.left, width - margin.right]);
+
+            const y = d3.scaleLinear()
+                .domain([
+                    0,
+                    d3.max(data, d => d.boughtInLastMonth)
+                ])
+                .nice()
+                .range([height - margin.bottom, margin.top]);
+
+            svg.append("g")
+                .attr("transform",
+                    `translate(0,${height - margin.bottom})`)
+                .call(d3.axisBottom(x));
+
+            svg.append("g")
+                .attr("transform",
+                    `translate(${margin.left},0)`)
+                .call(d3.axisLeft(y));
+
+            svg.append("text")
+                .attr("x", width / 2)
+                .attr("y", height - 15)
+                .attr("text-anchor", "middle")
+                .text("Product Rating (Stars)");
+
+            svg.append("text")
+                .attr("transform", "rotate(-90)")
+                .attr("x", -height / 2)
+                .attr("y", 20)
+                .attr("text-anchor", "middle")
+                .text("Bought In Last Month");
+
+            svg.selectAll("circle")
+                .data(data)
+                .enter()
+                .append("circle")
+                .attr("cx", d => x(d.stars))
+                .attr("cy", d => y(d.boughtInLastMonth))
+                .attr("r", 6)
+                .attr("fill", "steelblue")
+                .attr("opacity", 0.7);
+
+            svg.append("text")
+                .attr("class", "annotation")
+                .attr("x", 220)
+                .attr("y", 30)
+                .text("Scene 1: Products with higher ratings often attract more purchases");
+
+        }
+
+    </script>
 
 </body>
+
 </html>
