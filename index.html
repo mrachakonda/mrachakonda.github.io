@@ -32,10 +32,13 @@ Promise.all([
         categoryMap[category.id] = category;
     });
 
-    const joinedData = products.map(product => ({
-        ...product,
-        category: categoryMap[product.category_id]
-    }));
+   
+const joinedData = products.map(product => ({
+    ...product,
+    category_name:
+        categoryMap[product.category_id]?.category_name || "Unknown"
+}));
+
 
     // Make available in browser console
     window.products = products;
