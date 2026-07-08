@@ -6,6 +6,7 @@
     <meta charset="UTF-8">
     <title>Amazon Narrative Visualization</title>
 
+    <!-- D3 Library -->
     <script src="https://d3js.org/d3.v7.min.js"></script>
 
     <style>
@@ -14,20 +15,40 @@
             margin: 30px;
         }
 
+        h1 {
+            margin-bottom: 5px;
+        }
+
+        h2 {
+            margin-top: 10px;
+            color: #333;
+        }
+
         #status {
-            margin-bottom: 20px;
+            margin-bottom: 15px;
             color: green;
             font-weight: bold;
         }
 
         svg {
             border: 1px solid #ddd;
+            background-color: white;
+        }
+
+        .axis-label {
+            font-size: 14px;
+            font-weight: bold;
         }
 
         .annotation {
             fill: red;
+            font-size: 16px;
             font-weight: bold;
-            font-size: 14px;
+        }
+
+        .point {
+            fill: steelblue;
+            opacity: 0.7;
         }
     </style>
 </head>
@@ -36,7 +57,9 @@
 
     <h1>What Makes an Amazon Product Successful?</h1>
 
-    <div id="status">Loading...</div>
+    <h2>Scene 1: Price vs Product Popularity</h2>
+
+    <div id="status">Loading data...</div>
 
     <svg id="chart" width="900" height="500"></svg>
 
@@ -48,18 +71,20 @@
         ])
             .then(([products, categories]) => {
 
+                // Build category lookup using categories.id
                 const categoryMap = {};
 
                 categories.forEach(category => {
                     categoryMap[category.id] = category;
                 });
 
+                // Join products.category_id with categories.id
                 const joinedData = products.map(product => ({
 
                     ...product,
 
-                    stars: +product.stars,
                     price: +product.price,
+                    stars: +product.stars,
                     reviews: +product.reviews,
                     boughtInLastMonth: +product.boughtInLastMonth,
 
@@ -68,10 +93,18 @@
 
                 }));
 
-                document.getElementById("status").innerHTML =
-                    `Loaded ${joinedData.length} products`;
+                // Remove records where price or boughtInLastMonth is missing or invalid
+                const cleanData = joinedData.filter(d =>
+                    !isNaN(d.price) &&
+                    !isNaN(d.boughtInLastMonth) &&
+                    d.price >= 0 &&
+                    d.boughtInLastMonth >= 0
+                );
 
-                drawScatterPlot(joinedData);
+                document.getElementById("status").innerHTML =
+                    `Loaded ${cleanData.length} products`;
+
+                drawScene1(cleanData);
 
             })
             .catch(error => {
@@ -79,35 +112,39 @@
                 console.error(error);
 
                 document.getElementById("status").innerHTML =
-                    "Error loading CSV files";
+                    "Error loading CSV files. Please check file names and data folder.";
 
             });
 
 
 
-        function drawScatterPlot(data) {
+        function drawScene1(data) {
 
             const svg = d3.select("#chart");
 
+            // Clear SVG before drawing
             svg.selectAll("*").remove();
 
             const width = 900;
             const height = 500;
 
             const margin = {
-                top: 60,
+                top: 70,
                 right: 40,
-                bottom: 60,
-                left: 80
+                bottom: 70,
+                left: 90
             };
 
+            // X scale: Product price
             const x = d3.scaleLinear()
                 .domain([
-                    d3.min(data, d => d.stars) - 0.1,
-                    d3.max(data, d => d.stars) + 0.1
+                    0,
+                    d3.max(data, d => d.price)
                 ])
+                .nice()
                 .range([margin.left, width - margin.right]);
 
+            // Y scale: Bought in last month
             const y = d3.scaleLinear()
                 .domain([
                     0,
@@ -116,44 +153,50 @@
                 .nice()
                 .range([height - margin.bottom, margin.top]);
 
+            // X axis
             svg.append("g")
-                .attr("transform",
-                    `translate(0,${height - margin.bottom})`)
+                .attr("transform", `translate(0, ${height - margin.bottom})`)
                 .call(d3.axisBottom(x));
 
+            // Y axis
             svg.append("g")
-                .attr("transform",
-                    `translate(${margin.left},0)`)
+                .attr("transform", `translate(${margin.left}, 0)`)
                 .call(d3.axisLeft(y));
 
+            // X axis label
             svg.append("text")
+                .attr("class", "axis-label")
                 .attr("x", width / 2)
-                .attr("y", height - 15)
+                .attr("y", height - 25)
                 .attr("text-anchor", "middle")
-                .text("Product Rating (Stars)");
+                .text("Product Price ($)");
 
+            // Y axis label
             svg.append("text")
+                .attr("class", "axis-label")
                 .attr("transform", "rotate(-90)")
                 .attr("x", -height / 2)
-                .attr("y", 20)
+                .attr("y", 30)
                 .attr("text-anchor", "middle")
                 .text("Bought In Last Month");
 
+            // Scatter plot circles
             svg.selectAll("circle")
                 .data(data)
                 .enter()
                 .append("circle")
-                .attr("cx", d => x(d.stars))
+                .attr("class", "point")
+                .attr("cx", d => x(d.price))
                 .attr("cy", d => y(d.boughtInLastMonth))
-                .attr("r", 6)
-                .attr("fill", "steelblue")
-                .attr("opacity", 0.7);
+                .attr("r", 6);
 
+            // Scene annotation
             svg.append("text")
                 .attr("class", "annotation")
-                .attr("x", 220)
-                .attr("y", 30)
-                .text("Scene 1: Products with higher ratings often attract more purchases");
+                .attr("x", width / 2)
+                .attr("y", 35)
+                .attr("text-anchor", "middle")
+                .text("Scene 1: Investigating whether lower-priced products attract more purchases");
 
         }
 
