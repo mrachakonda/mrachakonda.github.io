@@ -5,32 +5,14 @@
     <meta charset="UTF-8">
     <title>Amazon Narrative Visualization</title>
 
-    <script src="https://d3js.org/"/script>
-
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 30px;
-        }
-
-        #status {
-            margin-top: 20px;
-            font-size: 18px;
-            color: green;
-        }
-
-        #error {
-            margin-top: 20px;
-            color: red;
-        }
-    </style>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
 </head>
 
 <body>
 
 <h1>Amazon Narrative Visualization</h1>
 
-<div id="status">Loading datasets...</div>
+<div id="status">Loading...</div>
 <div id="error"></div>
 
 <script>
@@ -41,32 +23,11 @@ Promise.all([
 ])
 .then(([products, categories]) => {
 
-    console.log("Products:", products);
-    console.log("Categories:", categories);
-
-    // Create category lookup map
-    const categoryMap = {};
-
-    categories.forEach(category => {
-
-        categoryMap[category.id] = category.name;
-
-    });
-
-    // Join products with categories
-    const joinedData = products.map(product => ({
-
-        ...product,
-
-        category_name: categoryMap[product.category_id]
-
-    }));
-
-    console.log("Joined Data:");
-    console.log(joinedData.slice(0, 5));
-
     document.getElementById("status").innerHTML =
-        `✅ Loaded ${products.length} products and ${categories.length} categories`;
+        `Loaded ${products.length} products and ${categories.length} categories`;
+
+    console.log(products);
+    console.log(categories);
 
 })
 .catch(error => {
@@ -74,7 +35,7 @@ Promise.all([
     console.error(error);
 
     document.getElementById("error").innerHTML =
-        "❌ Failed to load CSV files. Check file names and paths.";
+        "Failed to load CSV files";
 
 });
 
