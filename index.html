@@ -29,6 +29,24 @@ Promise.all([
     console.log(products);
     console.log(categories);
 
+    
+const categoryMap = {};
+
+categories.forEach(category => {
+    categoryMap[category.id] = category;
+});
+
+const joinedData = products.map(product => ({
+    ...product,
+    category: categoryMap[product.category_id]
+}));
+
+console.log(joinedData.slice(0,5));
+
+document.getElementById("status").innerHTML =
+    `Loaded ${joinedData.length} joined products`;
+
+
 })
 .catch(error => {
 
