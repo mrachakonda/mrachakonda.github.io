@@ -1,12 +1,44 @@
+
 <!DOCTYPE html>
 <html>
 <head>
-    <meta charset="UTF-8">
-    <title>CS416 Narattive Project</title>
+    <meta charset="utf-8">
+    <title>Amazon Narrative Visualization</title>
+
+    <script src="https://d3js.org/"/script>
 </head>
+
 <body>
 
-    <h1>Amazon Product Success Story</h1>
-    
+<h1>Amazon Narrative Visualization</h1>
+
+<div id="status">Loading...</div>
+
+<script>
+
+Promise.all([
+    d3.csv("data/products.csv"),
+    d3.csv("data/categories.csv")
+])
+.then(([products, categories]) => {
+
+    document.getElementById("status").innerHTML =
+        `Loaded ${products.length} products and ${categories.length} categories`;
+
+    console.log(products);
+    console.log(categories);
+
+})
+.catch(error => {
+
+    document.getElementById("status").innerHTML =
+        "Failed to load datasets";
+
+    console.error(error);
+
+});
+
+</script>
+
 </body>
 </html>
