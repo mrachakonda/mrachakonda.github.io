@@ -6,7 +6,6 @@
     <meta charset="UTF-8">
     <title>Amazon Narrative Visualization</title>
 
-    <!-- D3 Library -->
     <script src="https://d3js.org/d3.v7.min.js"></script>
 
     <style>
@@ -94,74 +93,96 @@
 
     <script>
 
-        // -------------------------------
-        // Parameters / State Variables
-        // -------------------------------
-
         let currentScene = 0;
         let globalData = [];
 
+        document.getElementById("prevBtn").disabled = true;
+        document.getElementById("nextBtn").disabled = true;
 
+        function updateStatus(message) {
+            document.getElementById("status").innerHTML = message;
+            console.log(message);
+        }
 
-        // -------------------------------
-        // Load and Join Data
-        // -------------------------------
+        function loadCategoriesFile() {
+            return d3.csv("data/categories.csv")
+                .catch(function () {
+                    console.warn("categories.csv failed. Trying catagories.csv...");
+                    return d3.csv("data/catagories.csv");
+                });
+        }
+
+        updateStatus("Step 1: Loading products and categories...");
 
         Promise.all([
             d3.csv("data/products.csv"),
-            d3.csv("data/categories.csv")
+            loadCategoriesFile()
         ])
-            .then(([products, categories]) => {
+        .then(([products, categories]) => {
 
-                const categoryMap = {};
+            updateStatus(
+                `Step 2: Loaded ${products.length} products and ${categories.length} categories`
+            );
 
-                categories.forEach(category => {
-                    categoryMap[category.id] = category;
-                });
+            console.log("Products sample:", products.slice(0, 3));
+            console.log("Categories sample:", categories.slice(0, 3));
 
-                const joinedData = products.map(product => ({
+            const categoryMap = {};
 
-                    ...product,
-
-                    price: +product.price,
-                    stars: +product.stars,
-                    reviews: +product.reviews,
-                    boughtInLastMonth: +product.boughtInLastMonth,
-
-                    category_name:
-                        categoryMap[product.category_id]?.category_name || "Unknown"
-
-                }));
-
-                const cleanData = joinedData.filter(d =>
-                    !isNaN(d.price) &&
-                    !isNaN(d.boughtInLastMonth) &&
-                    d.price >= 0 &&
-                    d.boughtInLastMonth >= 0
-                );
-
-                globalData = cleanData;
-
-                document.getElementById("status").innerHTML =
-                    `Loaded ${globalData.length} products`;
-
-                renderScene();
-
-            })
-            .catch(error => {
-
-                console.error(error);
-
-                document.getElementById("status").innerHTML =
-                    "Error loading CSV files. Please check file names and data folder.";
-
+            categories.forEach(category => {
+                categoryMap[category.id] = category;
             });
 
+            const joinedData = products.map(product => ({
+
+                ...product,
+
+                price: +product.price,
+                stars: +product.stars,
+                reviews: +product.reviews,
+                boughtInLastMonth: +product.boughtInLastMonth,
+
+                category_name:
+                    categoryMap[product.category_id]
+                        ? categoryMap[product.category_id].category_name
+                        : "Unknown"
+
+            }));
+
+            const cleanData = joinedData.filter(d =>
+                !isNaN(d.price) &&
+                !isNaN(d.boughtInLastMonth) &&
+                d.price >= 0 &&
+                d.boughtInLastMonth >= 0
+            );
+
+            globalData = cleanData;
+
+            console.log("Joined data sample:", globalData.slice(0, 5));
+
+            updateStatus(`Step 3: Ready. Loaded ${globalData.length} joined products`);
+
+            document.getElementById("prevBtn").disabled = false;
+            document.getElementById("nextBtn").disabled = false;
+
+            renderScene();
+
+        })
+        .catch(error => {
+
+            console.error("Data loading failed:", error);
+
+            document.getElementById("sceneTitle").innerHTML =
+                "Data Loading Error";
+
+            document.getElementById("status").innerHTML =
+                "Error loading CSV files. Check file names inside the data folder.";
+
+            d3.select("#chart").selectAll("*").remove();
+
+        });
 
 
-        // -------------------------------
-        // Render Scene Based on Parameter
-        // -------------------------------
 
         function renderScene() {
 
@@ -178,35 +199,210 @@
 
 
 
-        // -------------------------------
-        // Common Chart Setup
-        // This keeps visual template consistent
-        // -------------------------------
-
         function setupChart(data) {
 
             const svg = d3.select("#chart");
 
-            // Clear SVG before drawing each scene
             svg.selectAll("*").remove();
 
-            const *idth = 900;
-            const heig*t = 500;
+            const width = 900;
+            const height = 500;
 
-            const margin*= {
+            const margin = {
                 top: 70,
-     *          right: 40,
-             *  bottom: 70,
-                left* 90
+                right: 40,
+                bottom: 70,
+                left: 90
             };
 
-            co*st x = d3.scaleLinear()
-          *     .domain([
+            const x = d3.scaleLinear()
+                .domain([
                     0,
                     d3.max(data, d => d.price)
                 ])
-*               .nice()
-           *    .range([margin.left, width - margin.right]);
+                .nice()
+                .range([margin.left, width - margin.right]);
 
-            const y*= d3.scaleLinear()
-               *.domain([
+            const y = d3.scaleLinear()
+                .domain([
+                    0,
+                    d3.max(data, d => d.boughtInLastMonth)
+                ])
+                .nice()
+                .range([height - margin.bottom, margin.top]);
+
+            svg.append("g")
+                .attr("transform", `translate(0, ${height - margin.bottom})`)
+                .call(d3.axisBottom(x));
+
+            svg.append("g")
+                .attr("transform", `translate(${margin.left}, 0)`)
+                .call(d3.axisLeft(y));
+
+            svg.append("text")
+                .attr("class", "axis-label")
+                .attr("x", width / 2)
+                .attr("y", height - 25)
+                .attr("text-anchor", "middle")
+                .text("Product Price ($)");
+
+            svg.append("text")
+                .attr("class", "axis-label")
+                .attr("transform", "rotate(-90)")
+                .attr("x", -height / 2)
+                .attr("y", 30)
+                .attr("text-anchor", "middle")
+                .text("Bought In Last Month");
+
+            return {
+                svg: svg,
+                width: width,
+                height: height,
+                margin: margin,
+                x: x,
+                y: y
+            };
+        }
+
+
+
+        function drawScene1(data) {
+
+            document.getElementById("sceneTitle").innerHTML =
+                "Scene 1: Price vs Product Popularity";
+
+            document.getElementById("sceneDescription").innerHTML =
+                "This opening scene explores whether product price is related to how many units were bought in the last month.";
+
+            document.getElementById("sceneCounter").innerHTML =
+                "Scene 1 of 2";
+
+            const chart = setupChart(data);
+
+            chart.svg.selectAll("circle")
+                .data(data)
+                .enter()
+                .append("circle")
+                .attr("class", "point")
+                .attr("cx", d => chart.x(d.price))
+                .attr("cy", d => chart.y(d.boughtInLastMonth))
+                .attr("r", 6)
+                .attr("fill", "steelblue");
+
+            chart.svg.append("text")
+                .attr("class", "annotation")
+                .attr("x", chart.width / 2)
+                .attr("y", 35)
+                .attr("text-anchor", "middle")
+                .text("Scene 1: Investigating whether lower-priced products attract more purchases");
+        }
+
+
+
+        function drawScene2(data) {
+
+            document.getElementById("sceneTitle").innerHTML =
+                "Scene 2: Highlighting Amazon Best Sellers";
+
+            document.getElementById("sceneDescription").innerHTML =
+                "This scene keeps the same chart layout but highlights best sellers in orange. This helps compare best sellers against the rest of the product catalog.";
+
+            document.getElementById("sceneCounter").innerHTML =
+                "Scene 2 of 2";
+
+            const chart = setupChart(data);
+
+            chart.svg.selectAll("circle")
+                .data(data)
+                .enter()
+                .append("circle")
+                .attr("class", "point")
+                .attr("cx", d => chart.x(d.price))
+                .attr("cy", d => chart.y(d.boughtInLastMonth))
+                .attr("r", d => isBestSeller(d) ? 8 : 6)
+                .attr("fill", d => isBestSeller(d) ? "orange" : "steelblue")
+                .attr("stroke", d => isBestSeller(d) ? "black" : "none")
+                .attr("stroke-width", d => isBestSeller(d) ? 1.5 : 0)
+                .attr("opacity", d => isBestSeller(d) ? 1 : 0.45);
+
+            chart.svg.append("text")
+                .attr("class", "annotation")
+                .attr("x", chart.width / 2)
+                .attr("y", 35)
+                .attr("text-anchor", "middle")
+                .text("Scene 2: Best sellers are highlighted in orange");
+
+            chart.svg.append("circle")
+                .attr("cx", chart.width - 210)
+                .attr("cy", 90)
+                .attr("r", 7)
+                .attr("fill", "orange")
+                .attr("stroke", "black");
+
+            chart.svg.append("text")
+                .attr("x", chart.width - 195)
+                .attr("y", 95)
+                .text("Best Seller")
+                .attr("font-size", "13px");
+
+            chart.svg.append("circle")
+                .attr("cx", chart.width - 210)
+                .attr("cy", 115)
+                .attr("r", 7)
+                .attr("fill", "steelblue")
+                .attr("opacity", 0.45);
+
+            chart.svg.append("text")
+                .attr("x", chart.width - 195)
+                .attr("y", 120)
+                .text("Other Product")
+                .attr("font-size", "13px");
+        }
+
+
+
+        function isBestSeller(d) {
+
+            return d.isBestSeller === "TRUE" ||
+                   d.isBestSeller === "True" ||
+                   d.isBestSeller === "true" ||
+                   d.isBestSeller === "1" ||
+                   d.isBestSeller === true;
+        }
+
+
+
+        document.getElementById("nextBtn").onclick = function () {
+
+            if (currentScene < 1) {
+                currentScene = currentScene + 1;
+                renderScene();
+            }
+
+        };
+
+        document.getElementById("prevBtn").onclick = function () {
+
+            if (currentScene > 0) {
+                currentScene = currentScene - 1;
+                renderScene();
+            }
+
+        };
+
+
+
+        function updateButtons() {
+
+            document.getElementById("prevBtn").disabled =
+                currentScene === 0;
+
+            document.getElementById("nextBtn").disabled =
+                currentScene === 1;
+        }
+
+    </script>
+
+</body>
+
+</html>
