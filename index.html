@@ -1,23 +1,84 @@
 
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Amazon Narrative Visualization</title>
+
+    <script src="https://d3js.org/"/script>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 30px;
+        }
+
+        #status {
+            margin-top: 20px;
+            font-size: 18px;
+            color: green;
+        }
+
+        #error {
+            margin-top: 20px;
+            color: red;
+        }
+    </style>
+</head>
+
+<body>
+
+<h1>Amazon Narrative Visualization</h1>
+
+<div id="status">Loading datasets...</div>
+<div id="error"></div>
+
+<script>
+
 Promise.all([
     d3.csv("data/products.csv"),
     d3.csv("data/categories.csv")
 ])
 .then(([products, categories]) => {
 
+    console.log("Products:", products);
+    console.log("Categories:", categories);
+
+    // Create category lookup map
     const categoryMap = {};
 
-    categories.forEach(c => {
-        categoryMap[c.id] = c.name;
+    categories.forEach(category => {
+
+        categoryMap[category.id] = category.name;
+
     });
 
-    const joinedData = products.map(p => ({
-        ...p,
-        category: categoryMap[p.category_id]
+    // Join products with categories
+    const joinedData = products.map(product => ({
+
+        ...product,
+
+        category_name: categoryMap[product.category_id]
+
     }));
 
-    document.getElementById("status").innerHTML =
-        `Loaded ${joinedData.length} products`;
+    console.log("Joined Data:");
+    console.log(joinedData.slice(0, 5));
 
-    console.log(joinedData.slice(0,5));
+    document.getElementById("status").innerHTML =
+        `✅ Loaded ${products.length} products and ${categories.length} categories`;
+
+})
+.catch(error => {
+
+    console.error(error);
+
+    document.getElementById("error").innerHTML =
+        "❌ Failed to load CSV files. Check file names and paths.";
+
 });
+
+</script>
+
+</body>
+</html>
