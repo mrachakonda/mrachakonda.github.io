@@ -1,44 +1,23 @@
 
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="utf-8">
-    <title>Amazon Narrative Visualization</title>
-
-    <script src="https://d3js.org/"/script>
-</head>
-
-<body>
-
-<h1>Amazon Narrative Visualization</h1>
-
-<div id="status">Loading...</div>
-
-<script>
-
 Promise.all([
     d3.csv("data/products.csv"),
     d3.csv("data/categories.csv")
 ])
 .then(([products, categories]) => {
 
+    const categoryMap = {};
+
+    categories.forEach(c => {
+        categoryMap[c.id] = c.name;
+    });
+
+    const joinedData = products.map(p => ({
+        ...p,
+        category: categoryMap[p.category_id]
+    }));
+
     document.getElementById("status").innerHTML =
-        `Loaded ${products.length} products and ${categories.length} categories`;
+        `Loaded ${joinedData.length} products`;
 
-    console.log(products);
-    console.log(categories);
-
-})
-.catch(error => {
-
-    document.getElementById("status").innerHTML =
-        "Failed to load datasets";
-
-    console.error(error);
-
+    console.log(joinedData.slice(0,5));
 });
-
-</script>
-
-</body>
-</html>
