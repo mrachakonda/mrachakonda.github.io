@@ -30,6 +30,13 @@
             font-weight: bold;
         }
 
+        #sceneDescription {
+            width: 850px;
+            font-size: 16px;
+            line-height: 1.5;
+            margin-bottom: 15px;
+        }
+
         svg {
             border: 1px solid #ddd;
             background-color: white;
@@ -47,8 +54,21 @@
         }
 
         .point {
-            fill: steelblue;
-            opacity: 0.7;
+            opacity: 0.75;
+        }
+
+        button {
+            margin-top: 15px;
+            margin-right: 10px;
+            padding: 8px 14px;
+            font-size: 14px;
+            cursor: pointer;
+        }
+
+        #sceneCounter {
+            margin-top: 10px;
+            font-weight: bold;
+            color: #444;
         }
     </style>
 </head>
@@ -57,13 +77,35 @@
 
     <h1>What Makes an Amazon Product Successful?</h1>
 
-    <h2>Scene 1: Price vs Product Popularity</h2>
+    <h2 id="sceneTitle">Loading...</h2>
 
     <div id="status">Loading data...</div>
 
+    <div id="sceneDescription"></div>
+
     <svg id="chart" width="900" height="500"></svg>
 
+    <br>
+
+    <button id="prevBtn">Previous</button>
+    <button id="nextBtn">Next</button>
+
+    <div id="sceneCounter"></div>
+
     <script>
+
+        // -------------------------------
+        // Parameters / State Variables
+        // -------------------------------
+
+        let currentScene = 0;
+        let globalData = [];
+
+
+
+        // -------------------------------
+        // Load and Join Data
+        // -------------------------------
 
         Promise.all([
             d3.csv("data/products.csv"),
@@ -71,14 +113,12 @@
         ])
             .then(([products, categories]) => {
 
-                // Build category lookup using categories.id
                 const categoryMap = {};
 
                 categories.forEach(category => {
                     categoryMap[category.id] = category;
                 });
 
-                // Join products.category_id with categories.id
                 const joinedData = products.map(product => ({
 
                     ...product,
@@ -93,7 +133,6 @@
 
                 }));
 
-                // Remove records where price or boughtInLastMonth is missing or invalid
                 const cleanData = joinedData.filter(d =>
                     !isNaN(d.price) &&
                     !isNaN(d.boughtInLastMonth) &&
@@ -101,10 +140,12 @@
                     d.boughtInLastMonth >= 0
                 );
 
-                document.getElementById("status").innerHTML =
-                    `Loaded ${cleanData.length} products`;
+                globalData = cleanData;
 
-                drawScene1(cleanData);
+                document.getElementById("status").innerHTML =
+                    `Loaded ${globalData.length} products`;
+
+                renderScene();
 
             })
             .catch(error => {
@@ -118,90 +159,54 @@
 
 
 
-        function drawScene1(data) {
+        // -------------------------------
+        // Render Scene Based on Parameter
+        // -------------------------------
+
+        function renderScene() {
+
+            if (currentScene === 0) {
+                drawScene1(globalData);
+            }
+
+            if (currentScene === 1) {
+                drawScene2(globalData);
+            }
+
+            updateButtons();
+        }
+
+
+
+        // -------------------------------
+        // Common Chart Setup
+        // This keeps visual template consistent
+        // -------------------------------
+
+        function setupChart(data) {
 
             const svg = d3.select("#chart");
 
-            // Clear SVG before drawing
+            // Clear SVG before drawing each scene
             svg.selectAll("*").remove();
 
-            const width = 900;
-            const height = 500;
+            const *idth = 900;
+            const heig*t = 500;
 
-            const margin = {
+            const margin*= {
                 top: 70,
-                right: 40,
-                bottom: 70,
-                left: 90
+     *          right: 40,
+             *  bottom: 70,
+                left* 90
             };
 
-            // X scale: Product price
-            const x = d3.scaleLinear()
-                .domain([
+            co*st x = d3.scaleLinear()
+          *     .domain([
                     0,
                     d3.max(data, d => d.price)
                 ])
-                .nice()
-                .range([margin.left, width - margin.right]);
+*               .nice()
+           *    .range([margin.left, width - margin.right]);
 
-            // Y scale: Bought in last month
-            const y = d3.scaleLinear()
-                .domain([
-                    0,
-                    d3.max(data, d => d.boughtInLastMonth)
-                ])
-                .nice()
-                .range([height - margin.bottom, margin.top]);
-
-            // X axis
-            svg.append("g")
-                .attr("transform", `translate(0, ${height - margin.bottom})`)
-                .call(d3.axisBottom(x));
-
-            // Y axis
-            svg.append("g")
-                .attr("transform", `translate(${margin.left}, 0)`)
-                .call(d3.axisLeft(y));
-
-            // X axis label
-            svg.append("text")
-                .attr("class", "axis-label")
-                .attr("x", width / 2)
-                .attr("y", height - 25)
-                .attr("text-anchor", "middle")
-                .text("Product Price ($)");
-
-            // Y axis label
-            svg.append("text")
-                .attr("class", "axis-label")
-                .attr("transform", "rotate(-90)")
-                .attr("x", -height / 2)
-                .attr("y", 30)
-                .attr("text-anchor", "middle")
-                .text("Bought In Last Month");
-
-            // Scatter plot circles
-            svg.selectAll("circle")
-                .data(data)
-                .enter()
-                .append("circle")
-                .attr("class", "point")
-                .attr("cx", d => x(d.price))
-                .attr("cy", d => y(d.boughtInLastMonth))
-                .attr("r", 6);
-
-            // Scene annotation
-            svg.append("text")
-                .attr("class", "annotation")
-                .attr("x", width / 2)
-                .attr("y", 35)
-                .attr("text-anchor", "middle")
-                .text("Scene 1: Investigating whether lower-priced products attract more purchases");
-
-        }
-
-    </script>
-
-</body>
-
-</html>
+            const y*= d3.scaleLinear()
+               *.domain([
