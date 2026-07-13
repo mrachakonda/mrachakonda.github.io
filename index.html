@@ -1,408 +1,236 @@
-
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
-    <title>Amazon Narrative Visualization</title>
-
-    <script src="https://d3js.org/d3.v7.min.js"></script>
-
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple Inflation Narrative Dashboard</title>
+    <!-- Include the D3 library -->
+    <script src="https://d3js.org"></script>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 30px;
+        body { 
+            font-family: Arial, sans-serif; 
+            display: flex; 
+            margin: 0; 
+            background-color: #fafafa;
+            color: #333; 
         }
-
-        h1 {
-            margin-bottom: 5px;
+        #sidebar { 
+            width: 30%; 
+            height: 100vh; 
+            padding: 40px; 
+            box-sizing: border-box; 
+            display: flex; 
+            flex-direction: column; 
+            justify-content: center; 
+            background: white; 
+            border-right: 1px solid #ddd;
         }
-
-        h2 {
-            margin-top: 10px;
-            color: #333;
+        #chart-container { 
+            width: 70%; 
+            height: 100vh; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            position: relative;
         }
-
-        #status {
-            margin-bottom: 15px;
-            color: green;
-            font-weight: bold;
-        }
-
-        #sceneDescription {
-            width: 850px;
-            font-size: 16px;
-            line-height: 1.5;
-            margin-bottom: 15px;
-        }
-
         svg {
-            border: 1px solid #ddd;
-            background-color: white;
+            background: #ffffff;
+            border: 1px solid #eee;
+            border-radius: 8px;
         }
-
-        .axis-label {
-            font-size: 14px;
+        h1 { font-size: 24px; margin-bottom: 10px; color: #111; }
+        p { font-size: 16px; line-height: 1.6; color: #666; min-height: 120px; }
+        .controls { display: flex; gap: 10px; margin-top: 20px; }
+        button { 
+            padding: 10px 20px; 
+            font-size: 14px; 
+            border: none; 
+            background: #e0e0e0; 
+            color: #333; 
+            border-radius: 4px; 
+            cursor: pointer; 
             font-weight: bold;
         }
-
-        .annotation {
-            fill: red;
-            font-size: 16px;
-            font-weight: bold;
-        }
-
-        .point {
-            opacity: 0.75;
-        }
-
-        button {
-            margin-top: 15px;
-            margin-right: 10px;
-            padding: 8px 14px;
-            font-size: 14px;
-            cursor: pointer;
-        }
-
-        #sceneCounter {
-            margin-top: 10px;
-            font-weight: bold;
-            color: #444;
+        button#next-btn { background: #ff4757; color: white; }
+        button:disabled { background: #f0f0f0; color: #ccc; cursor: not-allowed; }
+        
+        /* Tooltip Style */
+        .chart-tooltip {
+            position: absolute;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 8px 12px;
+            font-size: 13px;
+            border-radius: 4px;
+            pointer-events: none;
+            opacity: 0;
         }
     </style>
 </head>
-
 <body>
 
-    <h1>What Makes an Amazon Product Successful?</h1>
+    <!-- LEFT SIDEBAR FOR TEXT AND BUTTONS -->
+    <div id="sidebar">
+        <h1 id="story-title">The Big Picture</h1>
+        <p id="story-body">Loading our inflation timeline data...</p>
+        <div class="controls">
+            <button id="back-btn" disabled>Back</button>
+            <button id="next-btn">Next</button>
+        </div>
+    </div>
 
-    <h2 id="sceneTitle">Loading...</h2>
-
-    <div id="status">Loading data...</div>
-
-    <div id="sceneDescription"></div>
-
-    <svg id="chart" width="900" height="500"></svg>
-
-    <br>
-
-    <button id="prevBtn">Previous</button>
-    <button id="nextBtn">Next</button>
-
-    <div id="sceneCounter"></div>
+    <!-- RIGHT SIDE FOR THE GRAPH -->
+    <div id="chart-container">
+        <div id="tooltip" class="chart-tooltip"></div>
+        <svg id="canvas"></svg>
+    </div>
 
     <script>
+        // --- STEP 1: SETTING UP THE DIMENSIONS ---
+        var margin = {top: 50, right: 150, bottom: 50, left: 60};
+        var width = (window.innerWidth * 0.7) - margin.left - margin.right;
+        var height = window.innerHeight - margin.top - margin.bottom;
 
-        let currentScene = 0;
-        let globalData = [];
+        // Create the SVG container canvas
+        var svg = d3.select("#canvas")
+            .attr("width", width + margin.left + margin.right)
+            .attr("height", height + margin.top + margin.bottom)
+          .append("g")
+            .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
 
-        document.getElementById("prevBtn").disabled = true;
-        document.getElementById("nextBtn").disabled = true;
+        var tooltip = d3.select("#tooltip");
 
-        function updateStatus(message) {
-            document.getElementById("status").innerHTML = message;
-            console.log(message);
-        }
+        // Keep track of which slide the user is on (0, 1, or 2)
+        var currentSlide = 0;
 
-        function loadCategoriesFile() {
-            return d3.csv("data/categories.csv")
-                .catch(function () {
-                    console.warn("categories.csv failed. Trying catagories.csv...");
-                    return d3.csv("data/catagories.csv");
-                });
-        }
-
-        updateStatus("Step 1: Loading products and categories...");
-
-        Promise.all([
-            d3.csv("data/products.csv"),
-            loadCategoriesFile()
-        ])
-        .then(([products, categories]) => {
-
-            updateStatus(
-                `Step 2: Loaded ${products.length} products and ${categories.length} categories`
-            );
-
-            console.log("Products sample:", products.slice(0, 3));
-            console.log("Categories sample:", categories.slice(0, 3));
-
-            const categoryMap = {};
-
-            categories.forEach(category => {
-                categoryMap[category.id] = category;
+        // --- STEP 2: CREATING PLAIN DATA ---
+        // Generates simple, clean timeline data for testing immediately
+        var sampleData = [];
+        var startHeadline = 2.0;
+        var startCore = 1.8;
+        for (var i = 0; i < 30; i++) {
+            var simulatedDate = new Date(2023, i, 1);
+            // Simulate an inflation spike halfway through the timeline
+            if (i > 10 && i < 22) {
+                startHeadline += 0.4;
+                startCore += 0.1;
+            } else {
+                startHeadline += 0.05;
+                startCore += 0.05;
+            }
+            sampleData.push({
+                date: simulatedDate,
+                headline: parseFloat(startHeadline.toFixed(1)),
+                core: parseFloat(startCore.toFixed(1))
             });
-
-            const joinedData = products.map(product => ({
-
-                ...product,
-
-                price: +product.price,
-                stars: +product.stars,
-                reviews: +product.reviews,
-                boughtInLastMonth: +product.boughtInLastMonth,
-
-                category_name:
-                    categoryMap[product.category_id]
-                        ? categoryMap[product.category_id].category_name
-                        : "Unknown"
-
-            }));
-
-            const cleanData = joinedData.filter(d =>
-                !isNaN(d.price) &&
-                !isNaN(d.boughtInLastMonth) &&
-                d.price >= 0 &&
-                d.boughtInLastMonth >= 0
-            );
-
-            globalData = cleanData;
-
-            console.log("Joined data sample:", globalData.slice(0, 5));
-
-            updateStatus(`Step 3: Ready. Loaded ${globalData.length} joined products`);
-
-            document.getElementById("prevBtn").disabled = false;
-            document.getElementById("nextBtn").disabled = false;
-
-            renderScene();
-
-        })
-        .catch(error => {
-
-            console.error("Data loading failed:", error);
-
-            document.getElementById("sceneTitle").innerHTML =
-                "Data Loading Error";
-
-            document.getElementById("status").innerHTML =
-                "Error loading CSV files. Check file names inside the data folder.";
-
-            d3.select("#chart").selectAll("*").remove();
-
-        });
-
-
-
-        function renderScene() {
-
-            if (currentScene === 0) {
-                drawScene1(globalData);
-            }
-
-            if (currentScene === 1) {
-                drawScene2(globalData);
-            }
-
-            updateButtons();
         }
 
+        // Sector breakdown data for the final slide
+        var barData = [
+            { name: "Transportation & Airfares", percentage: 26.7, color: "#ffa502" },
+            { name: "Energy & Gas Costs", percentage: 23.5, color: "#ff4757" },
+            { name: "General Household Goods", percentage: 2.9, color: "#747d8c" },
+            { name: "Grocery & Food Items", percentage: -1.0, color: "#2ed573" }
+        ];
 
+        // --- STEP 3: PRE-BUILDING EMPTY GRAPH ELEMENTS ---
+        // We create these once up front so we can easily animate them later
+        var xAxisGroup = svg.append("g").attr("transform", "translate(0," + height + ")");
+        var yAxisGroup = svg.append("g");
+        
+        var gapArea = svg.append("path").attr("opacity", 0);
+        var headlinePath = svg.append("path").attr("fill", "none").attr("stroke-width", 3);
+        var corePath = svg.append("path").attr("fill", "none").attr("stroke-width", 3);
+        
+        var interactionGroup = svg.append("g");
+        var legendGroup = svg.append("g").attr("transform", "translate(" + (width + 20) + ", 20)");
 
-        function setupChart(data) {
+        // --- STEP 4: DEFINING SLIDE VISUALS ---
 
-            const svg = d3.select("#chart");
+        // SLIDE 1: Draw two simple lines
+        function showSlide1() {
+            // 1. Update text and button states manually
+            d3.select("#story-title").text("The Big Picture");
+            d3.select("#story-body").text("Between 2023 and 2026, a massive structural gap emerged in the U.S. economy. While underlying Core Inflation remained relatively steady, overall Headline inflation accelerated aggressively.");
+            d3.select("#back-btn").property("disabled", true);
+            d3.select("#next-btn").property("disabled", false);
 
-            svg.selectAll("*").remove();
+            // Remove any leftover bars from Slide 3 if moving backwards
+            svg.selectAll(".bar-rect").remove();
 
-            const width = 900;
-            const height = 500;
+            // 2. Setup standard line chart axes
+            var xScale = d3.scaleTime().domain(d3.extent(sampleData, d => d.date)).range([0, width]);
+            var yScale = d3.scaleLinear().domain([0, 12]).range([height, 0]);
 
-            const margin = {
-                top: 70,
-                right: 40,
-                bottom: 70,
-                left: 90
-            };
+            xAxisGroup.transition().duration(500).call(d3.axisBottom(xScale));
+            yAxisGroup.transition().duration(500).call(d3.axisLeft(yScale).tickFormat(d => d + "%"));
 
-            const x = d3.scaleLinear()
-                .domain([
-                    0,
-                    d3.max(data, d => d.price)
-                ])
-                .nice()
-                .range([margin.left, width - margin.right]);
+            // 3. Define the line formulas
+            var makeHeadlineLine = d3.line().x(d => xScale(d.date)).y(d => yScale(d.headline));
+            var makeCoreLine = d3.line().x(d => xScale(d.date)).y(d => yScale(d.core));
 
-            const y = d3.scaleLinear()
-                .domain([
-                    0,
-                    d3.max(data, d => d.boughtInLastMonth)
-                ])
-                .nice()
-                .range([height - margin.bottom, margin.top]);
+            // 4. Draw the lines with a smooth fade-in duration
+            gapArea.transition().duration(300).attr("opacity", 0);
 
-            svg.append("g")
-                .attr("transform", `translate(0, ${height - margin.bottom})`)
-                .call(d3.axisBottom(x));
+            headlinePath.transition().duration(500)
+                .attr("opacity", 1).attr("stroke", "#ff4757").attr("d", makeHeadlineLine(sampleData));
 
-            svg.append("g")
-                .attr("transform", `translate(${margin.left}, 0)`)
-                .call(d3.axisLeft(y));
+            corePath.transition().duration(500)
+                .attr("opacity", 1).attr("stroke", "#747d8c").attr("d", makeCoreLine(sampleData));
 
-            svg.append("text")
-                .attr("class", "axis-label")
-                .attr("x", width / 2)
-                .attr("y", height - 25)
-                .attr("text-anchor", "middle")
-                .text("Product Price ($)");
+            // 5. Add simple text legend labels on the right
+            legendGroup.selectAll("*").remove();
+            
+            var leg1 = legendGroup.append("g");
+            leg1.append("rect").attr("width", 12).attr("height", 12).attr("fill", "#ff4757");
+            leg1.append("text").attr("x", 20).attr("y", 10).style("font-size", "12px").text("Headline Inflation");
 
-            svg.append("text")
-                .attr("class", "axis-label")
-                .attr("transform", "rotate(-90)")
-                .attr("x", -height / 2)
-                .attr("y", 30)
-                .attr("text-anchor", "middle")
-                .text("Bought In Last Month");
+            var leg2 = legendGroup.append("g").attr("transform", "translate(0, 25)");
+            leg2.append("rect").attr("width", 12).attr("height", 12).attr("fill", "#747d8c");
+            leg2.append("text").attr("x", 20).attr("y", 10).style("font-size", "12px").text("Core Inflation");
 
-            return {
-                svg: svg,
-                width: width,
-                height: height,
-                margin: margin,
-                x: x,
-                y: y
-            };
+            // 6. Create invisible vertical hover zones for tooltips
+            addHoverTooltips(xScale, yScale);
         }
 
+        // SLIDE 2: Highlight the space between the lines
+        function showSlide2() {
+            // 1. Update text content
+            d3.select("#story-title").text("The Growing Wedge");
+            d3.select("#story-body").text("Look closely at the highlighted region. This dramatic separation tells us that the inflation crisis wasn't driven by general consumer demand, but rather by sudden exterior shocks.");
+            d3.select("#back-btn").property("disabled", false);
+            d3.select("#next-btn").property("disabled", false);
 
+            svg.selectAll(".bar-rect").remove();
 
-        function drawScene1(data) {
+            var xScale = d3.scaleTime().domain(d3.extent(sampleData, d => d.date)).range([0, width]);
+            var yScale = d3.scaleLinear().domain([0, 12]).range([height, 0]);
 
-            document.getElementById("sceneTitle").innerHTML =
-                "Scene 1: Price vs Product Popularity";
+            // Define the shaded area block
+            var makeArea = d3.area()
+                .x(d => xScale(d.date))
+                .y0(d => yScale(d.core))
+                .y1(d => yScale(d.headline));
 
-            document.getElementById("sceneDescription").innerHTML =
-                "This opening scene explores whether product price is related to how many units were bought in the last month.";
+            // Fill the space with color smoothly
+            gapArea.attr("d", makeArea(sampleData))
+                .transition().duration(500)
+                .attr("fill", "#ff4757")
+                .attr("opacity", 0.15);
 
-            document.getElementById("sceneCounter").innerHTML =
-                "Scene 1 of 2";
+            // Change Core line color to light grey to create focus contrast
+            corePath.transition().duration(500).attr("stroke", "#ccc").attr("opacity", 1);
+            headlinePath.transition().duration(500).attr("stroke", "#ff4757").attr("opacity", 1);
 
-            const chart = setupChart(data);
+            legendGroup.selectAll("*").remove();
+            var leg = legendGroup.append("g");
+            leg.append("rect").attr("width", 12).attr("height", 12).attr("fill", "rgba(255, 71, 87, 0.2)");
+            leg.append("text").attr("x", 20).attr("y", 10).style("font-size", "12px").text("Market Strain Gap");
 
-            chart.svg.selectAll("circle")
-                .data(data)
-                .enter()
-                .append("circle")
-                .attr("class", "point")
-                .attr("cx", d => chart.x(d.price))
-                .attr("cy", d => chart.y(d.boughtInLastMonth))
-                .attr("r", 6)
-                .attr("fill", "steelblue");
-
-            chart.svg.append("text")
-                .attr("class", "annotation")
-                .attr("x", chart.width / 2)
-                .attr("y", 35)
-                .attr("text-anchor", "middle")
-                .text("Scene 1: Investigating whether lower-priced products attract more purchases");
+            addHoverTooltips(xScale, yScale);
         }
 
-
-
-        function drawScene2(data) {
-
-            document.getElementById("sceneTitle").innerHTML =
-                "Scene 2: Highlighting Amazon Best Sellers";
-
-            document.getElementById("sceneDescription").innerHTML =
-                "This scene keeps the same chart layout but highlights best sellers in orange. This helps compare best sellers against the rest of the product catalog.";
-
-            document.getElementById("sceneCounter").innerHTML =
-                "Scene 2 of 2";
-
-            const chart = setupChart(data);
-
-            chart.svg.selectAll("circle")
-                .data(data)
-                .enter()
-                .append("circle")
-                .attr("class", "point")
-                .attr("cx", d => chart.x(d.price))
-                .attr("cy", d => chart.y(d.boughtInLastMonth))
-                .attr("r", d => isBestSeller(d) ? 8 : 6)
-                .attr("fill", d => isBestSeller(d) ? "orange" : "steelblue")
-                .attr("stroke", d => isBestSeller(d) ? "black" : "none")
-                .attr("stroke-width", d => isBestSeller(d) ? 1.5 : 0)
-                .attr("opacity", d => isBestSeller(d) ? 1 : 0.45);
-
-            chart.svg.append("text")
-                .attr("class", "annotation")
-                .attr("x", chart.width / 2)
-                .attr("y", 35)
-                .attr("text-anchor", "middle")
-                .text("Scene 2: Best sellers are highlighted in orange");
-
-            chart.svg.append("circle")
-                .attr("cx", chart.width - 210)
-                .attr("cy", 90)
-                .attr("r", 7)
-                .attr("fill", "orange")
-                .attr("stroke", "black");
-
-            chart.svg.append("text")
-                .attr("x", chart.width - 195)
-                .attr("y", 95)
-                .text("Best Seller")
-                .attr("font-size", "13px");
-
-            chart.svg.append("circle")
-                .attr("cx", chart.width - 210)
-                .attr("cy", 115)
-                .attr("r", 7)
-                .attr("fill", "steelblue")
-                .attr("opacity", 0.45);
-
-            chart.svg.append("text")
-                .attr("x", chart.width - 195)
-                .attr("y", 120)
-                .text("Other Product")
-                .attr("font-size", "13px");
-        }
-
-
-
-        function isBestSeller(d) {
-
-            return d.isBestSeller === "TRUE" ||
-                   d.isBestSeller === "True" ||
-                   d.isBestSeller === "true" ||
-                   d.isBestSeller === "1" ||
-                   d.isBestSeller === true;
-        }
-
-
-
-        document.getElementById("nextBtn").onclick = function () {
-
-            if (currentScene < 1) {
-                currentScene = currentScene + 1;
-                renderScene();
-            }
-
-        };
-
-        document.getElementById("prevBtn").onclick = function () {
-
-            if (currentScene > 0) {
-                currentScene = currentScene - 1;
-                renderScene();
-            }
-
-        };
-
-
-
-        function updateButtons() {
-
-            document.getElementById("prevBtn").disabled =
-                currentScene === 0;
-
-            document.getElementById("nextBtn").disabled =
-                currentScene === 1;
-        }
-
-    </script>
-
-</body>
-
-</html>
+        // SLIDE 3: Hide lines and morph into a horizontal bar chart
+        function showSlide3() {
+            // 1. Update descriptive texts
+            d3.select("#story-title").text("The Culprits Unmasked");
