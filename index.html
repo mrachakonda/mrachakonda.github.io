@@ -18,41 +18,38 @@
 Loading files...
 </div>
 
+
 <script>
 
-Promise.all([
+d3.tsv("data/cu_series.txt")
+    .then(data => {
+        console.log("✅ cu_series.txt loaded");
+        console.log(data.length);
+    })
+    .catch(error => {
+        console.error("❌ cu_series.txt failed");
+        console.error(error);
+    });
 
-    d3.tsv("data/cu_series.txt"),
-    d3.tsv("data/cu_AllItems.txt"),
-    d3.tsv("data/cu_item.txt")
+d3.tsv("data/cu_AllItems.txt")
+    .then(data => {
+        console.log("✅ cu_AllItems.txt loaded");
+        console.log(data.length);
+    })
+    .catch(error => {
+        console.error("❌ cu_AllItems.txt failed");
+        console.error(error);
+    });
 
-]).then(function(files){
-
-    const series = files[0];
-    const data = files[1];
-    const items = files[2];
-
-    console.log(series);
-    console.log(data);
-    console.log(items);
-
-    d3.select("#output")
-        .html(`
-            <h3>Files Loaded Successfully</h3>
-
-            Series Rows: ${series.length}<br>
-            Data Rows: ${data.length}<br>
-            Item Rows: ${items.length}
-        `);
-
-}).catch(function(error){
-
-    console.error(error);
-
-    d3.select("#output")
-        .html("Error loading files");
-
-});
+d3.tsv("data/cu_item.txt")
+    .then(data => {
+        console.log("✅ cu_item.txt loaded");
+        console.log(data.length);
+    })
+    .catch(error => {
+        console.error("❌ cu_item.txt failed");
+        console.error(error);
+    });
 
 </script>
 
