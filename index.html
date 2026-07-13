@@ -1,15 +1,16 @@
 
 <!DOCTYPE html>
 <html>
-<head>
-    <title>D3 Test</title>
 
-    <script src="https://d3js.org/d3.v7.min.js"></script>
+<head>
+  <title>Step 3 - Load Data</title>
+
+  <script src="https://d3js.org/d3.v7.min.js"></script>
 </head>
 
 <body>
 
-<h1>D3 Test</h1>
+<h1>Step 3 - Load cu_series.txt</h1>
 
 <div id="output">
 Loading...
@@ -17,10 +18,31 @@ Loading...
 
 <script>
 
-document.getElementById("output").innerHTML =
-    "✅ D3 Version: " + d3.version;
+d3.text("data/cu_series.txt")
+  .then(function(text) {
+
+      const lines = text.split("\n");
+
+      document.getElementById("output").innerHTML =
+        `
+        ✅ File Loaded Successfully<br><br>
+
+        Total Lines: ${lines.length}<br><br>
+
+        First Line:<br>
+        ${lines[0]}
+        `;
+
+  })
+  .catch(function(error) {
+
+      document.getElementById("output").innerHTML =
+        "❌ Cannot find cu_series.txt";
+
+  });
 
 </script>
 
 </body>
+
 </html>
