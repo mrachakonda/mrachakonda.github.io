@@ -1,31 +1,14 @@
+
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <title>D3 TSV Example</title>
-    <!-- 1. LOAD D3 FIRST IN HEAD -->
-    <script src="https://jsdelivr.net"></script>
+    <title>My Test Page</title>
 </head>
 <body>
 
-    <!-- 2. PLACE YOUR LAYOUT CONTAINERS HERE -->
-    <div id="chart-container"></div>
+<h1>Hello Murali!</h1>
 
-    <!-- 3. PLACE DATA LOADING LOGIC IN A SCRIPT AT THE BOTTOM -->
-    <script>
-        // Target your HTML elements
-        const container = d3.select("#chart-container");
-
-        // Execute the file reading request
-        d3.tsv("data/cu_item.txt", d3.autoType)
-            .then(data => {
-                console.log("Data loaded successfully:", data);
-                // Draw your visualization here using 'data'
-            })
-            .catch(error => {
-                console.error("Error reading file:", error);
-            });
-    </script>
+<p>If you can see this, GitHub Pages is working.</p>
 
 </body>
 </html>
