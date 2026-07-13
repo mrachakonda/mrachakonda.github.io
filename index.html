@@ -3,9 +3,27 @@
 <html>
 
 <head>
-  <title>Step 3 - Load Data</title>
+    <title>Step 3 - Load Data</title>
 
-  <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+
+    <style>
+        table {
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        th,
+        td {
+            border: 1px solid black;
+            padding: 5px;
+            text-align: left;
+        }
+
+        th {
+            background-color: lightgray;
+        }
+    </style>
 </head>
 
 <body>
@@ -16,31 +34,61 @@
 Loading...
 </div>
 
-
 <script>
 
 d3.tsv("data/cu_series.txt")
-.then(function(data){
+.then(function(data) {
 
     const columns = Object.keys(data[0]);
 
-    document.getElementById("output").innerHTML =
-    `
-    Total Records: ${data.length}<br><br>
+    let html = `
+        <b>Total Records:</b> ${data.length}<br><br>
 
-    <b>Columns:</b><br>
-    ${columns.join("<br>")}
+        <b>Columns:</b><br>
+        ${columns.join("<br>")}
+        <br><br>
+
+        <b>Sample 5 Rows</b>
+        <table>
+            <thead>
+                <tr>
     `;
 
-  const sampleRows = data.slice(0, 5);
-   console.log("Sample Rows:");
-  console.table(sampleRows);
-})
+    // Header row
+    columns.forEach(col => {
+        html += `<th>${col}</th>`;
+    });
 
-.catch(function(error){
+    html += `
+                </tr>
+            </thead>
+            <tbody>
+    `;
+
+    // First 5 records
+    data.slice(0, 5).forEach(row => {
+
+        html += "<tr>";
+
+        columns.forEach(col => {
+            html += `<td>${row[col]}</td>`;
+        });
+
+        html += "</tr>";
+    });
+
+    html += `
+            </tbody>
+        </table>
+    `;
+
+    document.getElementById("output").innerHTML = html;
+
+})
+.catch(function(error) {
 
     document.getElementById("output").innerHTML =
-    "Error";
+        "Error loading file: " + error;
 
 });
 
