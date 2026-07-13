@@ -2,13 +2,25 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>My Test Page</title>
+    <title>D3 Test</title>
+
+    <script src="https://d3js.org/d3.v7.min.js"></script>
 </head>
+
 <body>
 
-<h1>Hello Murali!</h1>
+<h1>D3 Test</h1>
 
-<p>If you can see this, GitHub Pages is working.</p>
+<div id="output">
+Loading...
+</div>
+
+<script>
+
+document.getElementById("output").innerHTML =
+    "✅ D3 Version: " + d3.version;
+
+</script>
 
 </body>
 </html>
