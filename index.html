@@ -32,7 +32,45 @@ d3.tsv("data/cu_series.txt")
     ${columns.join("<br>")}
     `;
 
+
+ <b>Sample 5 Rows</b>
+        <table>
+            <thead>
+                <tr>
+    `;
+
+    // Header row
+    columns.forEach(col => {
+        html += `<th>${col}</th>`;
+    });
+
+    html += `
+                </tr>
+            </thead>
+            <tbody>
+    `;
+
+    // First 5 records
+    data.slice(0, 5).forEach(row => {
+
+        html += "<tr>";
+
+        columns.forEach(col => {
+            html += `<td>${row[col]}</td>`;
+        });
+
+        html += "</tr>";
+    });
+
+    html += `
+            </tbody>
+        </table>
+    `;
+
+    document.getElementById("output").innerHTML = html;
+
 })
+
 .catch(function(error){
 
     document.getElementById("output").innerHTML =
