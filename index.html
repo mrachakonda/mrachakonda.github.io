@@ -18,22 +18,30 @@ Loading...
 
 <script>
 
-d3.text("data/cu_series.txt")
-  .then(function(text) {
 
-      const lines = text.split("\n");
+d3.tsv("data/cu_series.txt")
 
-      document.getElementById("output").innerHTML =
-        `
-        ✅ File Loaded Successfully<br><br>
+.then(function(data){
 
-        Total Lines: ${lines.length}<br><br>
+    document.getElementById("output").innerHTML =
+    `
+    ✅ File Parsed Successfully<br><br>
 
-        First Line:<br>
-        ${lines[0]}
-        `;
+    Total Records: ${data.length}<br><br>
 
-  })
+    First Series ID:
+    ${data[0].series_id}<br><br>
+
+    First Item Code:
+    ${data[0].item_code}<br><br>
+
+    First Series Title:
+    ${data[0].series_title}
+    `;
+
+    console.log(data);
+
+})
   .catch(function(error) {
 
       document.getElementById("output").innerHTML =
