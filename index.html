@@ -16,38 +16,29 @@
 Loading...
 </div>
 
+
 <script>
 
-
 d3.tsv("data/cu_series.txt")
-
 .then(function(data){
+
+    const columns = Object.keys(data[0]);
 
     document.getElementById("output").innerHTML =
     `
-    ✅ File Parsed Successfully<br><br>
-
     Total Records: ${data.length}<br><br>
 
-    First Series ID:
-    ${data[0].series_id}<br><br>
-
-    First Item Code:
-    ${data[0].item_code}<br><br>
-
-    First Series Title:
-    ${data[0].series_title}
+    <b>Columns:</b><br>
+    ${columns.join("<br>")}
     `;
 
-    console.log(data);
-
 })
-  .catch(function(error) {
+.catch(function(error){
 
-      document.getElementById("output").innerHTML =
-        "❌ Cannot find cu_series.txt";
+    document.getElementById("output").innerHTML =
+    "Error";
 
-  });
+});
 
 </script>
 
