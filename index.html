@@ -3,196 +3,44 @@
 <html>
 
 <head>
-    <title>Step 4 - Join CPI Files</title>
+  <title>Step 3 - Load Data</title>
 
-    <script src="https://d3js.org/d3.v7.min.js"></script>
-
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 30px;
-        }
-
-        table {
-            border-collapse: collapse;
-            margin-top: 20px;
-            font-size: 13px;
-        }
-
-        th,
-        td {
-            border: 1px solid black;
-            padding: 6px;
-            text-align: left;
-        }
-
-        th {
-            background-color: lightgray;
-        }
-
-        .summary {
-            margin-bottom: 20px;
-            line-height: 1.6;
-        }
-    </style>
+  <script src="https://d3js.org/d3.v7.min.js"></script>
 </head>
 
 <body>
 
-<h1>Step 4 - Join cu_Allitems, cu_series, and cu_items</h1>
+<h1>Step 3 - Load cu_series.txt</h1>
 
 <div id="output">
-Loading files...
+Loading...
 </div>
+
 
 <script>
 
-Promise.all([
-    d3.tsv("data/cu_Allitems.txt"),
-    d3.tsv("data/cu_series.txt"),
-    d3.tsv("data/cu_items.txt")
-])
-.then(function([allItemsData, seriesData, itemsData]) {
+d3.tsv("data/cu_items.txt")
+.then(function(data){
 
-    console.log("cu_Allitems records:", allItemsData.length);
-    console.log("cu_series records:", seriesData.length);
-    console.log("cu_items records:", itemsData.length);
-
-    // =====================================================
-    // 1. Create lookup map for cu_series using series_id
-    // =====================================================
-    const seriesMap = {};
-
-    seriesData.forEach(function(row) {
-        const seriesId = row.series_id.trim();
-        seriesMap[seriesId] = row;
-    });
-
-    // =====================================================
-    // 2. Create lookup map for cu_items using item_code
-    // =====================================================
-    const itemMap = {};
-
-    itemsData.forEach(function(row) {
-        const itemCode = row.item_code.trim();
-        itemMap[itemCode] = row;
-    });
-
-    // =====================================================
-    // 3. Join all three files
-    // =====================================================
-    const joinedData = allItemsData.map(function(row) {
-
-        const seriesId = row.series_id.trim();
-
-        // Match cu_Allitems to cu_series
-        const seriesInfo = seriesMap[seriesId] || {};
-
-        // Get item_code from cu_series
-        const itemCode = seriesInfo.item_code
-            ? seriesInfo.item_code.trim()
-            : "";
-
-        // Match cu_series to cu_items
-        const itemInfo = itemMap[itemCode] || {};
-
-        return {
-            series_id: seriesId,
-            year: row.year,
-            period: row.period,
-            value: +row.value,
-            footnote_codes: row.footnote_codes,
-
-            area_code: seriesInfo.area_code,
-            item_code: itemCode,
-            seasonal: seriesInfo.seasonal,
-            periodicity_code: seriesInfo.periodicity_code,
-            base_code: seriesInfo.base_code,
-            base_period: seriesInfo.base_period,
-            series_title: seriesInfo.series_title,
-            begin_year: seriesInfo.begin_year,
-            begin_period: seriesInfo.begin_period,
-            end_year: seriesInfo.end_year,
-            end_period: seriesInfo.end_period,
-
-            item_name: itemInfo.item_name,
-            display_level: itemInfo.display_level,
-            selectable: itemInfo.selectable,
-            sort_sequence: itemInfo.sort_sequence
-        };
-
-    });
-
-    console.log("Joined Data:", joinedData);
-    console.log("Sample 5 Joined Rows:", joinedData.slice(0, 5));
-
-    // =====================================================
-    // 4. Display first 5 rows on page
-    // =====================================================
-    const sampleRows = joinedData.slice(0, 5);
-
-    let html = `
-        <div class="summary">
-            <b>cu_Allitems Records:</b> ${allItemsData.length}<br>
-            <b>cu_series Records:</b> ${seriesData.length}<br>
-            <b>cu_items Records:</b> ${itemsData.length}<br>
-            <b>Joined Records:</b> ${joinedData.length}<br>
-        </div>
-
-        <h2>Sample 5 Joined Rows</h2>
-
-        <table>
-            <thead>
-                <tr>
-                    <th>series_id</th>
-                    <th>year</th>
-                    <th>period</th>
-                    <th>value</th>
-                    <th>item_code</th>
-                    <th>item_name</th>
-                    <th>series_title</th>
-                </tr>
-            </thead>
-            <tbody>
-    `;
-
-    sampleRows.forEach(function(row) {
-        html += `
-            <tr>
-                <td>${row.series_id}</td>
-                <td>${row.year}</td>
-                <td>${row.period}</td>
-                <td>${row.value}</td>
-                <td>${row.item_code}</td>
-                <td>${row.item_name}</td>
-                <td>${row.series_title}</td>
-            </tr>
-        `;
-    });
-
-    html += `
-            </tbody>
-        </table>
-    `;
-
-    document.getElementById("output").innerHTML = html;
-
-})
-.catch(function(error) {
-
-    console.error("Error loading files:", error);
+    const columns = Object.keys(data[0]);
 
     document.getElementById("output").innerHTML =
-        `
-        <h2 style="color:red;">Error loading files</h2>
-        <p>Check that these files exist exactly with these names:</p>
-        <ul>
-            <li>data/cu_Allitems.txt</li>
-            <li>data/cu_series.txt</li>
-            <li>data/cu_items.txt</li>
-        </ul>
-        <pre>${error}</pre>
-        `;
+    `
+    Total Records: ${data.length}<br><br>
+
+    <b>Columns:</b><br>
+    ${columns.join("<br>")}
+    `;
+
+  const sampleRows = data.slice(0, 5);
+   console.log("Sample Rows:");
+  console.table(sampleRows);
+})
+
+.catch(function(error){
+
+    document.getElementById("output").innerHTML =
+    "Error";
 
 });
 
