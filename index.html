@@ -10,6 +10,7 @@
     <title>Healthcare Inflation Narrative</title>
 </head>
 
+
 <body>
 
 <h1>Healthcare Inflation Narrative Visualization</h1>
@@ -18,38 +19,10 @@
 Loading files...
 </div>
 
-
 <script>
 
-d3.tsv("data/cu_series.txt")
-    .then(data => {
-        console.log("✅ cu_series.txt loaded");
-        console.log(data.length);
-    })
-    .catch(error => {
-        console.error("❌ cu_series.txt failed");
-        console.error(error);
-    });
-
-d3.tsv("data/cu_AllItems.txt")
-    .then(data => {
-        console.log("✅ cu_AllItems.txt loaded");
-        console.log(data.length);
-    })
-    .catch(error => {
-        console.error("❌ cu_AllItems.txt failed");
-        console.error(error);
-    });
-
-d3.tsv("data/cu_item.txt")
-    .then(data => {
-        console.log("✅ cu_item.txt loaded");
-        console.log(data.length);
-    })
-    .catch(error => {
-        console.error("❌ cu_item.txt failed");
-        console.error(error);
-    });
+document.getElementById("output").innerHTML =
+  "✅ JavaScript is running";
 
 </script>
 
