@@ -1,31 +1,31 @@
-
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-    <meta charset="utf-8">
-
-    <script src="https://d3js.org/d3.v7.min.js"></script>
-
-    <title>Healthcare Inflation Narrative</title>
+    <meta charset="UTF-8">
+    <title>D3 TSV Example</title>
+    <!-- 1. LOAD D3 FIRST IN HEAD -->
+    <script src="https://jsdelivr.net"></script>
 </head>
-
-
 <body>
 
-<h1>Healthcare Inflation Narrative Visualization</h1>
+    <!-- 2. PLACE YOUR LAYOUT CONTAINERS HERE -->
+    <div id="chart-container"></div>
 
-<div id="output">
-Loading files...
-</div>
+    <!-- 3. PLACE DATA LOADING LOGIC IN A SCRIPT AT THE BOTTOM -->
+    <script>
+        // Target your HTML elements
+        const container = d3.select("#chart-container");
 
-<script>
-
-document.getElementById("output").innerHTML =
-  "✅ JavaScript is running";
-
-</script>
+        // Execute the file reading request
+        d3.tsv("data/cu_item.txt", d3.autoType)
+            .then(data => {
+                console.log("Data loaded successfully:", data);
+                // Draw your visualization here using 'data'
+            })
+            .catch(error => {
+                console.error("Error reading file:", error);
+            });
+    </script>
 
 </body>
-
 </html>
