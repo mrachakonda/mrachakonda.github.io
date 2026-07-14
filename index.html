@@ -1,84 +1,45 @@
 
-<!DOCTYPE html>
-<html>
-
-<head>
-  <title>Step 1 - Load Data</title>
-
-  <script src="https://d3js.org/d3.v7.min.js"></script>
-</head>
-
-<body>
-
-<h1>Step 1 - Load cu_series.txt</h1>
-
-<div id="output">
-Loading...
-</div>
-
-<script>
-// Clean headers and values
-function cleanRow(d) {
-    const clean = {};
-
-    for (let key in d) {
-        clean[key.trim()] =
-            d[key] ? d[key].trim() : "";
-    }
-
-    return clean;
-}
-
-Promise.all([
-  d3.tsv("data/cu_series.txt",cleanRow),
-  d3.tsv("data/cu_items.txt",cleanRow) 
-])
-.then(function([data, data2]) {
+.then(function([seriesData, itemData]) {
 
     let html = "";
 
-    html += "<h2>File Loaded Successfully</h2>";
+    // Create lookup for cu_items
+    const itemLookup = new Map(
+        itemData.map(d => [d.item_code, d])
+    );
 
-    html += "Total Rows: " + data.length + "<br><br>";
+    // Join datasets
+    const joinedData = seriesData.map(series => {
 
-    html += "<h3>Column Names</h3>";
+        const item = itemLookup.get(series.item_code);
 
-    Object.keys(data[0]).forEach(col => {
-        html += "[" + col + "]<br>";
+        return {
+            series_id: series.series_id,
+            area_code: series.area_code,
+            item_code: series.item_code,
+            seasonal: series.seasonal,
+            series_title: series.series_title,
+
+            // From cu_items
+            item_name: item ? item.item_name : "",
+            display_level: item ? item.display_level : "",
+            selectable: item ? item.selectable : "",
+            sort_sequence: item ? item.sort_sequence : ""
+        };
     });
 
-    html += "<br><h3>First 5 Rows</h3>";
+    html += "<h2>Files Loaded Successfully</h2>";
+
+    html += "cu_series Rows: " + seriesData.length + "<br>";
+    html += "cu_items Rows: " + itemData.length + "<br>";
+    html += "Joined Rows: " + joinedData.length + "<br><br>";
+
+    html += "<h3>Joined Dataset - First 5 Rows</h3>";
 
     html += "<pre>";
-    html += JSON.stringify(data.slice(0,5), null, 2);
-    html += "</pre>";
-
-    html += "Total Rows: " + data2.length + "<br><br>";
-
-    html += "<h3>Column Names</h3>";
-
-    Object.keys(data2[0]).forEach(col => {
-        html += "[" + col + "]<br>";
-    });
-
-    html += "<br><h3>First 5 Rows</h3>";
-
-    html += "<pre>";
-    html += JSON.stringify(data2.slice(0,5), null, 2);
+    html += JSON.stringify(joinedData.slice(0,5), null, 2);
     html += "</pre>";
 
     document.getElementById("output").innerHTML = html;
+
 })
-
-.catch(function(error){
-
-    document.getElementById("output").innerHTML =
-    "Error";
-
-});
-
-</script>
-
-</body>
-
-</html>
