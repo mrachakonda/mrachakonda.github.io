@@ -19,7 +19,7 @@
             d3.tsv("data/cu_series.txt"),
             d3.tsv("data/cu_Allitems.txt")
         ])
-        .then(function([seriesData, allItemsData]) {
+        .then(function([data, allItemsData]) {
 /*
             let html = "";
 
@@ -50,7 +50,7 @@
             html += `</pre>`;
 
             d3.select("#output").html(html);
-*/
+
             // Also print to browser console
             console.log("cu_series Columns:", Object.keys(seriesData[0]));
             console.log("cu_Allitems Columns:", Object.keys(allItemsData[0]));
@@ -60,6 +60,21 @@
 
             console.log("First 5 cu_Allitems rows:");
             console.table(allItemsData.slice(0, 5));
+            */
+
+             const columns = Object.keys(data[0]);
+
+    document.getElementById("output").innerHTML =
+    `
+    Total Records: ${data.length}<br><br>
+
+    <b>Columns:</b><br>
+    ${columns.join("<br>")}
+    `;
+
+  const sampleRows = data.slice(0, 5);
+   console.log("Sample Rows:");
+  console.table(sampleRows);
 
         })
         .catch(function(error) {
