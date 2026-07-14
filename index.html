@@ -3,14 +3,14 @@
 <html>
 
 <head>
-  <title>Step 3 - Load Data</title>
+  <title>Step 1 - Load Data</title>
 
   <script src="https://d3js.org/d3.v7.min.js"></script>
 </head>
 
 <body>
 
-<h1>Step 3 - Load cu_series.txt</h1>
+<h1>Step 1 - Load cu_series.txt</h1>
 
 <div id="output">
 Loading...
@@ -25,19 +25,25 @@ Promise.all([
 ])
 .then(function([data, otherData]) {
 
-    const columns = Object.keys(data[0]);
+    let html = "";
 
-    document.getElementById("output").innerHTML =
-    `
-    Total Records: ${data.length}<br><br>
+    html += "<h2>File Loaded Successfully</h2>";
 
-    <b>Columns:</b><br>
-    ${columns.join("<br>")}
-    `;
+    html += "Total Rows: " + data.length + "<br><br>";
 
-  const sampleRows = data.slice(0, 5);
-   console.log("Sample Rows:");
-  console.table(sampleRows);
+    html += "<h3>Column Names</h3>";
+
+    Object.keys(data[0]).forEach(col => {
+        html += "[" + col + "]<br>";
+    });
+
+    html += "<br><h3>First 5 Rows</h3>";
+
+    html += "<pre>";
+    html += JSON.stringify(data.slice(0,5), null, 2);
+    html += "</pre>";
+
+    document.getElementById("output").innerHTML = html;
 })
 
 .catch(function(error){
