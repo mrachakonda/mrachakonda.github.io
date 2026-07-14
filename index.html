@@ -3,66 +3,26 @@
 <html>
 
 <head>
-    <title>Read Two Files</title>
-    <ttps://d3js.org/d3.v7.min.jsscript>
+  <title>Step 3 - Load Data</title>
+
+  <script src="https://d3js.org/d3.v7.min.js"></script>
 </head>
 
 <body>
 
-    <h1>Step 1 - Read Two Files</h1>
+<h1>Step 3 - Load cu_series.txt</h1>
 
-    <div id="output">Loading files...</div>
+<div id="output">
+Loading...
+</div>
 
-    <script>
 
-        Promise.all([
-            d3.tsv("data/cu_series.txt"),
-            d3.tsv("data/cu_Allitems.txt")
-        ])
-        .then(function([data, allItemsData]) {
-/*
-            let html = "";
+<script>
 
-            // File counts
-            html += `<h2>File Summary</h2>`;
-            html += `cu_series.txt Records: ${seriesData.length}<br>`;
-            html += `cu_Allitems.txt Records: ${allItemsData.length}<br><br>`;
+d3.tsv("data/cu_series.txt")
+.then(function(data){
 
-            // Column names
-            html += `<h2>cu_series Columns</h2>`;
-            html += Object.keys(seriesData[0]).join(", ");
-            html += `<br><br>`;
-
-            html += `<h2>cu_Allitems Columns</h2>`;
-            html += Object.keys(allItemsData[0]).join(", ");
-            html += `<br><br>`;
-
-            // Sample rows from cu_series
-            html += `<h2>First 5 Rows - cu_series.txt</h2>`;
-            html += `<pre>`;
-            html += JSON.stringify(seriesData.slice(0, 5), null, 2);
-            html += `</pre>`;
-
-            // Sample rows from cu_Allitems
-            html += `<h2>First 5 Rows - cu_Allitems.txt</h2>`;
-            html += `<pre>`;
-            html += JSON.stringify(allItemsData.slice(0, 5), null, 2);
-            html += `</pre>`;
-
-            d3.select("#output").html(html);
-
-            // Also print to browser console
-            console.log("cu_series Columns:", Object.keys(seriesData[0]));
-            console.log("cu_Allitems Columns:", Object.keys(allItemsData[0]));
-
-            console.log("First 5 cu_series rows:");
-            console.table(seriesData.slice(0, 5));
-
-            console.log("First 5 cu_Allitems rows:");
-            console.table(allItemsData.slice(0, 5));
-            */
-
-             const columns = Object.keys(data[0]);
+    const columns = Object.keys(data[0]);
 
     document.getElementById("output").innerHTML =
     `
@@ -75,19 +35,16 @@
   const sampleRows = data.slice(0, 5);
    console.log("Sample Rows:");
   console.table(sampleRows);
+})
 
-        })
-        .catch(function(error) {
+.catch(function(error){
 
-            d3.select("#output").html(
-                `<h2>Error loading files</h2>
-                 <pre>${error}</pre>`
-            );
+    document.getElementById("output").innerHTML =
+    "Error";
 
-            console.error(error);
-        });
+});
 
-    </script>
+</script>
 
 </body>
 
