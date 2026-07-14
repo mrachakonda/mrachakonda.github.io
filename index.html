@@ -19,8 +19,11 @@ Loading...
 
 <script>
 
-d3.tsv("data/cu_series.txt")
-.then(function(data){
+Promise.all([
+  d3.tsv("data/cu_series.txt"),
+  d3.tsv("data/cu_items.txt") 
+])
+.then(function([data, otherData]) {
 
     const columns = Object.keys(data[0]);
 
