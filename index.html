@@ -3,25 +3,28 @@
 <html>
 
 <head>
-  <title>Step 1 - Load Data</title>
+    <title>Step 1 - Load Data</title>
 
-  <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
 </head>
 
 <body>
 
-<h1>Step 1 - Load cu_series.txt</h1>
+<h1>Step 1 - Load Data</h1>
 
 <div id="output">
-Loading...
+    Loading...
 </div>
 
 <script>
+
 // Clean headers and values
 function cleanRow(d) {
+
     const clean = {};
 
     for (let key in d) {
+
         clean[key.trim()] =
             d[key] ? d[key].trim() : "";
     }
@@ -30,44 +33,13 @@ function cleanRow(d) {
 }
 
 Promise.all([
-  d3.tsv("data/cu_series.txt",cleanRow),
-  d3.tsv("data/cu_items.txt",cleanRow) 
+    d3.tsv("data/cu_series.txt", cleanRow),
+    d3.tsv("data/cu_items.txt", cleanRow)
 ])
+
 .then(function([seriesData, itemData]) {
 
-    let html = "";
-
-    html += "<h2>File Loaded Successfully</h2>";
-
-    html += "Total Rows: " + seriesData.length + "<br><br>";
-
-    html += "<h3>Column Names</h3>";
-
-    Object.keys(seriesData[0]).forEach(col => {
-        html += "[" + col + "]<br>";
-    });
-
-    html += "<br><h3>First 5 Rows</h3>";
-
-    html += "<pre>";
-    html += JSON.stringify(seriesData.slice(0,5), null, 2);
-    html += "</pre>";
-
-    html += "Total Rows: " + itemData.length + "<br><br>";
-
-    html += "<h3>Column Names</h3>";
-
-    Object.keys(itemData[0]).forEach(col => {
-        html += "[" + col + "]<br>";
-    });
-
-    html += "<br><h3>First 5 Rows</h3>";
-
-    html += "<pre>";
-    html += JSON.stringify(itemData.slice(0,5), null, 2);
-    html += "</pre>";
-
-     // Create lookup for cu_items
+    // Create lookup using item_code
     const itemLookup = new Map(
         itemData.map(d => [d.item_code, d])
     );
@@ -84,18 +56,22 @@ Promise.all([
             seasonal: series.seasonal,
             series_title: series.series_title,
 
-            // From cu_items
             item_name: item ? item.item_name : "",
             display_level: item ? item.display_level : "",
             selectable: item ? item.selectable : "",
             sort_sequence: item ? item.sort_sequence : ""
         };
 
-     html = "";
+    });
 
-    html += "<h2>Joined data</h2>";
+    // Generate HTML AFTER join is complete
+    let html = "";
 
-    html += "Total Rows: " + joinedData.length + "<br><br>";
+    html += "<h2>Joined Data</h2>";
+
+    html += "Series Rows: " + seriesData.length + "<br>";
+    html += "Item Rows: " + itemData.length + "<br>";
+    html += "Joined Rows: " + joinedData.length + "<br><br>";
 
     html += "<h3>Column Names</h3>";
 
@@ -106,17 +82,21 @@ Promise.all([
     html += "<br><h3>First 5 Rows</h3>";
 
     html += "<pre>";
-    html += JSON.stringify(joinedData.slice(0,5), null, 2);
+    html += JSON.stringify(joinedData.slice(0, 5), null, 2);
     html += "</pre>";
 
-    
     document.getElementById("output").innerHTML = html;
+
 })
 
-.catch(function(error){
+.catch(function(error) {
 
     document.getElementById("output").innerHTML =
-    "Error";
+        "<h2>Error Loading Files</h2><pre>" +
+        error +
+        "</pre>";
+
+    console.error(error);
 
 });
 
