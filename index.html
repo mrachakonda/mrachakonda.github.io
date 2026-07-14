@@ -23,7 +23,7 @@ Promise.all([
   d3.tsv("data/cu_series.txt"),
   d3.tsv("data/cu_items.txt") 
 ])
-.then(function([data, otherData]) {
+.then(function([data, data2]) {
 
     let html = "";
 
@@ -41,6 +41,20 @@ Promise.all([
 
     html += "<pre>";
     html += JSON.stringify(data.slice(0,5), null, 2);
+    html += "</pre>";
+
+    html += "Total Rows: " + data2.length + "<br><br>";
+
+    html += "<h3>Column Names</h3>";
+
+    Object.keys(data2[0]).forEach(col => {
+        html += "[" + col + "]<br>";
+    });
+
+    html += "<br><h3>First 5 Rows</h3>";
+
+    html += "<pre>";
+    html += JSON.stringify(data2.slice(0,5), null, 2);
     html += "</pre>";
 
     document.getElementById("output").innerHTML = html;
