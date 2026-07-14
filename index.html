@@ -19,20 +19,33 @@ Loading...
 
 <script>
 
-d3.tsv("data/cu_series.txt")
-.then(function(data){
+Promise.all([
+    d3.tsv("data/cu_series.txt"),
+    d3.tsv("data/cu_Allitems.txt"),
+    d3.tsv("data/cu_items.txt")
+])
+.then(function([seriesData, allItemsData, itemData]) {
 
-    const columns = Object.keys(data[0]);
+    console.log("Series:", seriesData.length);
+    console.log("Values:", allItemsData.length);
+    console.log("Items:", itemData.length);
+
+    // Create lookup for cu_series
+    const seriesLookup = new Map(
+        seriesData.map(d => [d.series_id.trim(), d])
+    );
+
+const seriesCols = Object.keys(seriesData[0]);
 
     document.getElementById("output").innerHTML =
     `
-    Total Records: ${data.length}<br><br>
+    Total Records: ${seriesData.length}<br><br>
 
     <b>Columns:</b><br>
-    ${columns.join("<br>")}
+    ${seriesCols.join("<br>")}
     `;
 
-  const sampleRows = data.slice(0, 5);
+  const sampleRows = seriesData.slice(0, 5);
    console.log("Sample Rows:");
   console.table(sampleRows);
 })
