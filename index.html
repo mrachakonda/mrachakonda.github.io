@@ -17,10 +17,21 @@ Loading...
 </div>
 
 <script>
+// Clean headers and values
+function cleanRow(d) {
+    const clean = {};
+
+    for (let key in d) {
+        clean[key.trim()] =
+            d[key] ? d[key].trim() : "";
+    }
+
+    return clean;
+}
 
 Promise.all([
-  d3.tsv("data/cu_series.txt"),
-  d3.tsv("data/cu_items.txt") 
+  d3.tsv("data/cu_series.txt",cleanRow),
+  d3.tsv("data/cu_items.txt",cleanRow) 
 ])
 .then(function([data, data2]) {
 
