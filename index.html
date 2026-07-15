@@ -32,60 +32,74 @@ function cleanRow(d) {
     return clean;
 }
 
+
 Promise.all([
     d3.tsv("data/cu_series.txt", cleanRow),
-    d3.tsv("data/cu_items.txt", cleanRow)
+    d3.tsv("data/cu_items.txt", cleanRow),
+    d3.tsv("data/cu_Allitems.txt", cleanRow)
 ])
 
-.then(function([seriesData, itemData]) {
+.then(function([seriesData, itemData, valueData]) {
 
-    // Create lookup using item_code
-    const itemLookup = new Map(
-        itemData.map(d => [d.item_code, d])
-    );
 
-    // Join datasets
-    const joinedData = seriesData.map(series => {
+const itemLookup = new Map(
+    itemData.map(d => [d.item_code, d])
+);
 
-        const item = itemLookup.get(series.item_code);
+const seriesLookup = new Map(
+    seriesData.map(d => [d.series_id, d])
+);
 
-        return {
-            series_id: series.series_id,
-            area_code: series.area_code,
-            item_code: series.item_code,
-            seasonal: series.seasonal,
-            series_title: series.series_title,
 
-            item_name: item ? item.item_name : "",
-            display_level: item ? item.display_level : "",
-            selectable: item ? item.selectable : "",
-            sort_sequence: item ? item.sort_sequence : ""
-        };
+const joinedData = valueData.map(value => {
 
-    });
+    const series = seriesLookup.get(value.series_id);
 
-    // Generate HTML AFTER join is complete
-    let html = "";
+    const item = series
+        ? itemLookup.get(series.item_code)
+        : null;
 
-    html += "<h2>Joined Data</h2>";
+    return {
 
-    html += "Series Rows: " + seriesData.length + "<br>";
-    html += "Item Rows: " + itemData.length + "<br>";
-    html += "Joined Rows: " + joinedData.length + "<br><br>";
+        // cu_Allitems
+        series_id: value.series_id,
+        year: value.year,
+        period: value.period,
+        value: +value.value,
 
-    html += "<h3>Column Names</h3>";
+        // cu_series
+        item_code: series ? series.item_code : "",
+        seasonal: series ? series.seasonal : "",
+        series_title: series ? series.series_title : "",
 
-    Object.keys(joinedData[0]).forEach(col => {
-        html += "[" + col + "]<br>";
-    });
+        // cu_items
+        item_name: item ? item.item_name : "",
+        display_level: item ? item.display_level : ""
 
-    html += "<br><h3>First 5 Rows</h3>";
+    };
+});
 
-    html += "<pre>";
-    html += JSON.stringify(joinedData.slice(0, 5), null, 2);
-    html += "</pre>";
+let html = "";
 
-    document.getElementById("output").innerHTML = html;
+html += "<h2>Join Validation</h2>";
+
+html += "Series Records: " + seriesData.length + "<br>";
+html += "Item Records: " + itemData.length + "<br>";
+html += "Value Records: " + valueData.length + "<br>";
+html += "Joined Records: " + joinedData.length + "<br><br>";
+
+html += "<h3>Columns</h3>";
+
+Object.keys(joinedData[0]).forEach(col => {
+    html += col + "<br>";
+});
+
+html += "<br><h3>First 5 Rows</h3>";
+html += "<pre>";
+html += JSON.stringify(joinedData.slice(0, 5), null, 2);
+html += "</pre>";
+
+document.getElementById("output").innerHTML = html;
 
 })
 
