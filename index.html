@@ -400,7 +400,7 @@ console.log(
         .attr("height", height);
 
     const combined =
-        [...allItems, ...energy];
+        [...allItems, ...medical];
 
     const x =
         d3.scaleLinear()
@@ -426,9 +426,9 @@ console.log(
        .attr("stroke-width", 3)
        .attr("d", line);
 
-    // Energy line
+    // medical line
     svg.append("path")
-       .datum(energy)
+       .datum(medical)
        .attr("fill", "none")
        .attr("stroke", "orange")
        .attr("stroke-width", 3)
@@ -471,7 +471,7 @@ console.log(
        .attr("text-anchor", "middle")
        .style("font-size", "18px")
        .style("font-weight", "bold")
-       .text("Energy CPI Compared with Overall CPI");
+       .text("Medical Care CPI Compared with Overall CPI");
 
     // Persistent annotation
     svg.append("rect")
@@ -487,7 +487,7 @@ console.log(
        .attr("x", 225)
        .attr("y", 70)
        .attr("class", "annotation")
-       .text("Energy is significantly more volatile than overall CPI");
+       .text("Medical Care is significantly more volatile than overall CPI");
 
     // Legend
     svg.append("circle")
@@ -510,7 +510,7 @@ console.log(
     svg.append("text")
        .attr("x", width - 215)
        .attr("y", 135)
-       .text("Energy CPI");
+       .text("Medical Care CPI");
 
     const tooltip =
         d3.select(".tooltip");
@@ -560,7 +560,7 @@ console.log(
 
     // Tooltips for both lines
     addTooltipDots(allItems, "All Items CPI", "blue");
-    addTooltipDots(energy, "Energy CPI", "orange");
+    addTooltipDots(medical, "Medical Care CPI", "orange");
 }
 
 </script>
