@@ -1,412 +1,327 @@
 
 <!DOCTYPE html>
 <html>
-
 <head>
-    <meta charset="utf-8">
+    <meta charset="UTF-8">
+    <title>Martini Glass Narrative Visualization - CPI</title>
 
-    <title>CPI Narrative Visualization</title>
-
-    <script src="https://d3js.org/d3.v7.min.js"></script>
+    https://d3js.org/d3.v7.min.jsscript>
 
     <style>
         body {
-            font-family: Arial;
-            margin: 20px;
+            font-family: Arial, sans-serif;
+            margin: 30px;
+            background-color: #f4f7fb;
+            color: #222;
+        }
+
+        #container {
+            max-width: 1100px;
+            margin: auto;
+            background-color: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.15);
+        }
+
+        h1 {
+            text-align: center;
+            color: #1f3c88;
+        }
+
+        h2 {
+            color: #1f3c88;
+        }
+
+        #sceneTitle {
+            font-size: 22px;
+            font-weight: bold;
+            color: #1f3c88;
+            margin-top: 20px;
+        }
+
+        #storyText {
+            font-size: 17px;
+            line-height: 1.5;
+            margin-top: 10px;
         }
 
         #chart {
             margin-top: 20px;
         }
 
-        .line {
-            fill: none;
-            stroke-width: 2;
-        }
-
-        .scene-text {
-            font-size: 18px;
-            margin-bottom: 10px;
-            padding: 10px;
-            background: #f5f5f5;
+        #controls {
+            margin-top: 20px;
+            font-size: 16px;
         }
 
         button {
-            padding: 10px;
-            margin: 5px;
+            background-color: #1f3c88;
+            color: white;
+            border: none;
+            padding: 10px 22px;
+            margin: 8px;
+            font-size: 16px;
+            border-radius: 6px;
+            cursor: pointer;
         }
 
-        #controls {
-            margin-top: 20px;
+        button:hover {
+            background-color: #142a63;
         }
 
-        #exploreSection {
-            display: none;
+        select {
+            padding: 8px;
+            font-size: 16px;
+            margin-top: 8px;
+        }
+
+        .sceneBox {
+            background-color: #eef3ff;
+            border-left: 5px solid #1f3c88;
+            padding: 12px;
             margin-top: 15px;
+        }
+
+        .annotationText {
+            fill: #d62728;
+            font-size: 14px;
+            font-weight: bold;
+        }
+
+        .axisLabel {
+            font-size: 13px;
+            font-weight: bold;
+        }
+
+        .legendText {
+            font-size: 13px;
         }
     </style>
 </head>
 
 <body>
 
-    <h1>Inflation Story Through CPI</h1>
+<div id="container">
 
-    <div id="narrativeText"></div>
+    <h1>Consumer Price Index: A Martini Glass Narrative</h1>
 
-    <div>
-        <button id="prevBtn">Previous</button>
-        <button id="nextBtn">Next</button>
-    </div>
-
-    <div id="exploreSection">
-        <h3>Explore Categories</h3>
-
-        <select id="categorySelect" multiple size="10"></select>
-    </div>
-
+    <div id="sceneTitle"></div>
+    <div id="storyText"></div>
+    <div id="controls"></div>
     <div id="chart"></div>
+    <div id="buttons"></div>
+
+</div>
 
 <script>
 
-function cleanRow(d) {
+/************************************************************
+ * PARAMETERS / STATE VARIABLES
+ *
+ * These are the parameters of the narrative visualization.
+ * They control which scene is drawn and what data is shown.
+ ************************************************************/
 
+const state = {
+    scene: 1,
+    selectedItem: "All items",
+    selectedComparison: "All items less food and energy"
+};
+
+
+/************************************************************
+ * GLOBAL DATA
+ ************************************************************/
+
+let joinedData = [];
+
+const margin = { top: 60, right: 90, bottom: 70, left: 80 };
+const outerWidth = 950;
+const outerHeight = 520;
+const width = outerWidth - margin.left - margin.right;
+const height = outerHeight - margin.top - margin.bottom;
+
+
+/************************************************************
+ * CLEAN ROW FUNCTION
+ *
+ * Your files have tab delimiters and spaces after some values.
+ * This function trims column names and values.
+ ************************************************************/
+
+function cleanRow(d) {
     const clean = {};
 
     for (let key in d) {
+        const newKey = key.trim();
 
-        clean[key.trim()] =
-            d[key] ? d[key].trim() : "";
+        if (typeof d[key] === "string") {
+            clean[newKey] = d[key].trim();
+        } else {
+            clean[newKey] = d[key];
+        }
     }
 
     return clean;
 }
 
-let chartData = [];
-let currentScene = 0;
+
+/************************************************************
+ * LOAD 3 FILES
+ ************************************************************/
 
 Promise.all([
     d3.tsv("data/cu_series.txt", cleanRow),
     d3.tsv("data/cu_Allitems.txt", cleanRow),
     d3.tsv("data/cu_items.txt", cleanRow)
 ])
+.then(function([seriesData, allItemsData, itemData]) {
 
-.then(function([seriesData, valueData, itemData]) {
+    console.log("cu_series rows:", seriesData.length);
+    console.log("cu_Allitems rows:", allItemsData.length);
+    console.log("cu_items rows:", itemData.length);
 
-    const itemLookup =
-        new Map(
-            itemData.map(d => [d.item_code, d])
-        );
-
-    const seriesLookup =
-        new Map(
-            seriesData.map(d => [d.series_id, d])
-        );
-
-    const joinedData =
-        valueData.map(value => {
-
-            const series =
-                seriesLookup.get(value.series_id);
-
-            const item =
-                series
-                ? itemLookup.get(series.item_code)
-                : null;
-
-            return {
-
-                series_id: value.series_id,
-
-                year: +value.year,
-
-                period: value.period,
-
-                value: +value.value,
-
-                item_code: series?.item_code,
-
-                item_name: item?.item_name,
-
-                series_title: series?.series_title
-            };
-        });
-
-    chartData = joinedData;
-
-    buildDropdown();
-
-    drawScene();
-
-});
-
-function buildDropdown() {
-
-    const categories =
-        [...new Set(
-            chartData
-                .map(d => d.item_name)
-                .filter(Boolean)
-        )]
-        .sort();
-
-    const select =
-        document.getElementById("categorySelect");
-
-    categories.forEach(cat => {
-
-        const option =
-            document.createElement("option");
-
-        option.value = cat;
-        option.text = cat;
-
-        select.appendChild(option);
-
-    });
-
-    select.addEventListener(
-        "change",
-        drawExplorationChart
+    const seriesLookup = new Map(
+        seriesData.map(d => [d.series_id.trim(), d])
     );
-}
 
-document
-.getElementById("nextBtn")
-.addEventListener("click", function() {
+    const itemLookup = new Map(
+        itemData.map(d => [d.item_code.trim(), d])
+    );
 
-    if(currentScene < 3) {
+    joinedData = allItemsData.map(d => {
 
-        currentScene++;
+        const series = seriesLookup.get(d.series_id.trim());
 
-        drawScene();
-    }
+        const item = series
+            ? itemLookup.get(series.item_code.trim())
+            : null;
 
-});
+        const monthNumber = d.period
+            ? +d.period.replace("M", "")
+            : null;
 
-document
-.getElementById("prevBtn")
-.addEventListener("click", function() {
+        return {
+            series_id: d.series_id ? d.series_id.trim() : "",
+            year: +d.year,
+            period: d.period ? d.period.trim() : "",
+            month: monthNumber,
+            value: +d.value,
 
-    if(currentScene > 0) {
+            item_code: series ? series.item_code.trim() : "",
+            series_title: series ? series.series_title : "",
+            seasonal: series ? series.seasonal : "",
 
-        currentScene--;
+            item_name: item ? item.item_name.trim() : "Unknown",
+            display_level: item ? item.display_level : ""
+        };
+    })
+    .filter(d =>
+        d.series_id !== "" &&
+        !isNaN(d.year) &&
+        !isNaN(d.month) &&
+        !isNaN(d.value) &&
+        d.period !== "M13" &&
+        d.item_name !== "Unknown"
+    );
 
-        drawScene();
-    }
-
-});
-
-function drawScene() {
-
-    document
-        .getElementById("exploreSection")
-        .style.display =
-            currentScene === 3
-                ? "block"
-                : "none";
-
-    if(currentScene === 0) {
-
-        document.getElementById(
-            "narrativeText"
-        ).innerHTML =
-        "<div class='scene-text'>" +
-        "<b>Scene 1:</b> Since 1947, consumer prices have steadily increased." +
-        "</div>";
-
-        drawCategories([
-            "All items"
-        ]);
-    }
-
-    else if(currentScene === 1) {
-
-        document.getElementById(
-            "narrativeText"
-        ).innerHTML =
-        "<div class='scene-text'>" +
-        "<b>Scene 2:</b> Energy prices are far more volatile than overall inflation." +
-        "</div>";
-
-        drawCategories([
-            "All items",
-            "Energy"
-        ]);
-    }
-
-    else if(currentScene === 2) {
-
-        document.getElementById(
-            "narrativeText"
-        ).innerHTML =
-        "<div class='scene-text'>" +
-        "<b>Scene 3:</b> Core inflation behaves differently when food and energy are removed." +
-        "</div>";
-
-        drawCategories([
-            "All items",
-            "Energy",
-            "All items less food",
-            "All items less food and energy"
-        ]);
-    }
-
-    else {
-
-        document.getElementById(
-            "narrativeText"
-        ).innerHTML =
-        "<div class='scene-text'>" +
-        "<b>Scene 4:</b> Explore CPI categories yourself." +
-        "</div>";
-
-        drawExplorationChart();
-    }
-}
-
-function drawCategories(categories) {
-
-    const filtered =
-        chartData.filter(d =>
-            categories.includes(
-                d.item_name
-            )
-        );
-
-    renderChart(filtered);
-}
-
-function drawExplorationChart() {
-
-    const selected =
-        [...document
-            .getElementById("categorySelect")
-            .selectedOptions]
-        .map(d => d.value);
-
-    if(selected.length === 0)
-        return;
-
-    const filtered =
-        chartData.filter(d =>
-            selected.includes(
-                d.item_name
-            )
-        );
-
-    renderChart(filtered);
-}
-
-function renderChart(data) {
-
-    d3.select("#chart").html("");
-
-    const margin = {
-        top:40,
-        right:150,
-        bottom:50,
-        left:70
-    };
-
-    const width = 1000;
-    const height = 500;
-
-    data.forEach(d => {
-
-        const month =
-            +d.period.replace("M","") - 1;
-
-        d.date =
-            new Date(
-                d.year,
-                month,
-                1
-            );
+    joinedData.forEach(d => {
+        d.date = new Date(d.year, d.month - 1, 1);
     });
 
-    const svg =
-        d3.select("#chart")
-          .append("svg")
-          .attr("width", width)
-          .attr("height", height);
+    console.log("Joined records:", joinedData.length);
+    console.table(joinedData.slice(0, 5));
 
-    const x =
-        d3.scaleTime()
-          .domain(
-              d3.extent(
-                  data,
-                  d => d.date
-              )
-          )
-          .range([
-              margin.left,
-              width - margin.right
-          ]);
+    renderScene();
 
-    const y =
-        d3.scaleLinear()
-          .domain([
-              d3.min(data,d=>d.value),
-              d3.max(data,d=>d.value)
-          ])
-          .nice()
-          .range([
-              height - margin.bottom,
-              margin.top
-          ]);
+})
+.catch(function(error) {
+    console.error("Error loading files:", error);
 
-    svg.append("g")
-       .attr(
-           "transform",
-           `translate(0,${
-            height-margin.bottom
-           })`
-       )
-       .call(d3.axisBottom(x));
+    d3.select("#sceneTitle").html("Error Loading Files");
 
-    svg.append("g")
-       .attr(
-           "transform",
-           `translate(${
-               margin.left
-           },0)`
-       )
-       .call(d3.axisLeft(y));
+    d3.select("#storyText").html(`
+        <p>Please confirm these files exist exactly in your data folder:</p>
+        <ul>
+            <li>data/cu_series.txt</li>
+            <li>data/cu_Allitems.txt</li>
+            <li>data/cu_items.txt</li>
+        </ul>
+        <p><b>Error:</b> ${error}</p>
+    `);
+});
 
-    const categories =
-        d3.group(
-            data,
-            d => d.item_name
-        );
 
-    const colors =
-        d3.scaleOrdinal(
-            d3.schemeTableau10
-        );
+/************************************************************
+ * TRIGGER FUNCTIONS
+ *
+ * These functions change parameters and redraw the scene.
+ ************************************************************/
 
-    let i = 0;
-
-    categories.forEach(
-        (values, category) => {
-
-        const line =
-            d3.line()
-              .x(d => x(d.date))
-              .y(d => y(d.value));
-
-        svg.append("path")
-           .datum(values)
-           .attr("class","line")
-           .attr("stroke",
-               colors(i++)
-           )
-           .attr("d", line);
-
-        });
-
+function goToScene(sceneNumber) {
+    state.scene = sceneNumber;
+    renderScene();
 }
 
-</script>
+function changeSelectedItem() {
+    state.selectedItem = d3.select("#itemSelect").property("value");
+    renderScene();
+}
 
-</body>
-</html>
+function changeComparisonItem() {
+    state.selectedComparison = d3.select("#comparisonSelect").property("value");
+    renderScene();
+}
+
+
+/************************************************************
+ * MAIN SCENE RENDERER
+ *
+ * This clears the containers and repopulates them.
+ * This follows the professor's suggested d3.select(id).html("")
+ * approach.
+ ************************************************************/
+
+function renderScene() {
+
+    d3.select("#sceneTitle").html("");
+    d3.select("#storyText").html("");
+    d3.select("#controls").html("");
+    d3.select("#chart").html("");
+    d3.select("#buttons").html("");
+
+    if (state.scene === 1) {
+        scene1Intro();
+    } else if (state.scene === 2) {
+        scene2OverallCPI();
+    } else if (state.scene === 3) {
+        scene3Post2020();
+    } else if (state.scene === 4) {
+        scene4EnergyVolatility();
+    } else if (state.scene === 5) {
+        scene5CoreCPIComparison();
+    } else if (state.scene === 6) {
+        scene6ShelterComparison();
+    } else if (state.scene === 7) {
+        scene7Explore();
+    }
+}
+
+
+/************************************************************
+ * DATA HELPERS
+ ************************************************************/
+
+function getYearlyData(itemName) {
+
+    const filtered = joinedData.filter(d => d.item_name === itemName);
+
+    const yearly = d3.rollups(
+        filtered,
+        values => d3.mean(values, d => d.value),
+        d => d.year
+    )
+    .map(([year, value]) => {
+        return {
+            year: +year,
