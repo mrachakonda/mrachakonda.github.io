@@ -240,35 +240,37 @@ function drawScene2(){
 // SCENE 3
 //////////////////////////////////////////////////////////
 
+
 function drawScene3(){
 
     d3.select("#sceneTitle")
-      .html("<h2>Scene 3: Free-Form Exploration - Energy vs Overall CPI</h2>");
+      .html("<h2>Scene 3: Explore Energy vs Overall CPI</h2>");
 
     d3.select("#storyText")
       .html(`
-      <p>
-        This final scene opens the Martini Glass structure for free-form exploration.
-      </p>
+        <p>
+        This final scene allows free-form exploration.
+        Hover over any blue or orange data point to view CPI details.
+        </p>
 
-      <div style="
-          background:#fff8e6;
-          border-left:6px solid orange;
-          padding:12px;
-          margin-top:10px;
-          margin-bottom:10px;
-          font-size:16px;
-      ">
-        <b>Free-form Interaction Enabled:</b><br>
-        Hover over any circular data point on either line to see the CPI category,
-        year, and CPI value.
-      </div>
-
-      <p>
-        Blue points represent <b>All Items CPI</b>. 
-        Orange points represent <b>Energy CPI</b>.
-      </p>
+        <div style="
+            background:#fff8e6;
+            padding:12px;
+            border-left:5px solid orange;
+            margin-top:10px;
+        ">
+            <b>Free-form Interaction:</b>
+            Move your mouse over any data point to see the year and CPI value.
+        </div>
       `);
+
+    drawComparisonChart();
+
+    d3.select("#buttons")
+      .html(`
+        <button onclick="prevScene()">Back</button>
+      `);
+}
 
     drawComparisonChart();
 
@@ -363,6 +365,7 @@ function drawChart(
 // SCENE 3 CHART WITH TOOLTIPS
 //////////////////////////////////////////////////////////
 
+
 function drawComparisonChart(){
 
     const allItems =
@@ -373,7 +376,12 @@ function drawComparisonChart(){
 
     const width = 900;
     const height = 500;
-    const margin = {top:60, right:90, bottom:70, left:70};
+    const margin = {
+        top: 60,
+        right: 100,
+        bottom: 60,
+        left: 70
+    };
 
     const svg =
         d3.select("#chart")
@@ -400,7 +408,10 @@ function drawComparisonChart(){
         .x(d => x(d.year))
         .y(d => y(d.value));
 
-    // All Items line
+    /////////////////////////////////////////////////////
+    // ALL ITEMS LINE
+    /////////////////////////////////////////////////////
+
     svg.append("path")
        .datum(allItems)
        .attr("fill", "none")
@@ -408,7 +419,10 @@ function drawComparisonChart(){
        .attr("stroke-width", 3)
        .attr("d", line);
 
-    // Energy line
+    /////////////////////////////////////////////////////
+    // ENERGY LINE
+    /////////////////////////////////////////////////////
+
     svg.append("path")
        .datum(energy)
        .attr("fill", "none")
@@ -416,133 +430,188 @@ function drawComparisonChart(){
        .attr("stroke-width", 3)
        .attr("d", line);
 
-    // X axis
+    /////////////////////////////////////////////////////
+    // X AXIS
+    /////////////////////////////////////////////////////
+
     svg.append("g")
-       .attr("transform", `translate(0,${height - margin.bottom})`)
+       .attr(
+           "transform",
+           `translate(0,${height-margin.bottom})`
+       )
        .call(
-          d3.axisBottom(x)
-          .tickFormat(d3.format("d"))
+           d3.axisBottom(x)
+             .tickFormat(d3.format("d"))
        );
 
-    // Y axis
+    /////////////////////////////////////////////////////
+    // Y AXIS
+    /////////////////////////////////////////////////////
+
     svg.append("g")
-       .attr("transform", `translate(${margin.left},0)`)
+       .attr(
+           "transform",
+           `translate(${margin.left},0)`
+       )
        .call(d3.axisLeft(y));
 
-    // X axis label
+    /////////////////////////////////////////////////////
+    // AXIS LABELS
+    /////////////////////////////////////////////////////
+
     svg.append("text")
-       .attr("x", width / 2)
-       .attr("y", height - 20)
-       .attr("text-anchor", "middle")
-       .style("font-weight", "bold")
+       .attr("x", width/2)
+       .attr("y", height-15)
+       .attr("text-anchor","middle")
+       .style("font-weight","bold")
        .text("Year");
 
-    // Y axis label
     svg.append("text")
-       .attr("transform", "rotate(-90)")
-       .attr("x", -height / 2)
-       .attr("y", 20)
-       .attr("text-anchor", "middle")
-       .style("font-weight", "bold")
+       .attr("transform","rotate(-90)")
+       .attr("x",-height/2)
+       .attr("y",20)
+       .attr("text-anchor","middle")
+       .style("font-weight","bold")
        .text("CPI Value");
 
-    // Chart title
+    /////////////////////////////////////////////////////
+    // TITLE
+    /////////////////////////////////////////////////////
+
     svg.append("text")
-       .attr("x", width / 2)
+       .attr("x", width/2)
        .attr("y", 30)
-       .attr("text-anchor", "middle")
-       .style("font-size", "18px")
-       .style("font-weight", "bold")
+       .attr("text-anchor","middle")
+       .style("font-size","18px")
+       .style("font-weight","bold")
        .text("Energy CPI Compared with Overall CPI");
 
-    // Persistent annotation
+    /////////////////////////////////////////////////////
+    // ANNOTATION
+    /////////////////////////////////////////////////////
+
     svg.append("rect")
-       .attr("x", 210)
-       .attr("y", 48)
-       .attr("width", 390)
-       .attr("height", 34)
-       .attr("fill", "#fff4f4")
-       .attr("stroke", "red")
-       .attr("rx", 5);
+       .attr("x",220)
+       .attr("y",50)
+       .attr("width",400)
+       .attr("height",35)
+       .attr("fill","#fff4f4")
+       .attr("stroke","red")
+       .attr("rx",5);
 
     svg.append("text")
-       .attr("x", 225)
-       .attr("y", 70)
-       .attr("class", "annotation")
-       .text("Energy is significantly more volatile than overall CPI");
+       .attr("x",240)
+       .attr("y",73)
+       .attr("fill","red")
+       .attr("font-size","16px")
+       .attr("font-weight","bold")
+       .text("Energy prices fluctuate more than overall CPI");
 
-    // Legend
+    /////////////////////////////////////////////////////
+    // LEGEND
+    /////////////////////////////////////////////////////
+
     svg.append("circle")
-       .attr("cx", width - 230)
-       .attr("cy", 105)
-       .attr("r", 6)
-       .attr("fill", "blue");
+       .attr("cx",700)
+       .attr("cy",120)
+       .attr("r",6)
+       .attr("fill","blue");
 
     svg.append("text")
-       .attr("x", width - 215)
-       .attr("y", 110)
+       .attr("x",720)
+       .attr("y",125)
        .text("All Items CPI");
 
     svg.append("circle")
-       .attr("cx", width - 230)
-       .attr("cy", 130)
-       .attr("r", 6)
-       .attr("fill", "orange");
+       .attr("cx",700)
+       .attr("cy",150)
+       .attr("r",6)
+       .attr("fill","orange");
 
     svg.append("text")
-       .attr("x", width - 215)
-       .attr("y", 135)
+       .attr("x",720)
+       .attr("y",155)
        .text("Energy CPI");
+
+    /////////////////////////////////////////////////////
+    // TOOLTIP
+    /////////////////////////////////////////////////////
 
     const tooltip =
         d3.select(".tooltip");
 
-    // Reusable tooltip dots function
-    function addTooltipDots(data, categoryName, dotColor){
+    /////////////////////////////////////////////////////
+    // REUSABLE FUNCTION
+    /////////////////////////////////////////////////////
 
-        svg.selectAll("." + categoryName.replaceAll(" ", "") + "Dot")
+    function addTooltipDots(data, label, color){
+
+        svg.selectAll("." + label.replace(/\s/g,""))
            .data(data)
            .enter()
            .append("circle")
            .attr("cx", d => x(d.year))
            .attr("cy", d => y(d.value))
-           .attr("r", 6)
-           .attr("fill", dotColor)
-           .attr("stroke", "black")
-           .attr("stroke-width", 1)
-           .style("cursor", "pointer")
-           .on("mouseover", function(event, d){
+           .attr("r", 5)
+           .attr("fill", color)
+           .attr("stroke","black")
+           .style("cursor","pointer")
+
+           .on("mouseover", function(event,d){
 
                 d3.select(this)
-                  .attr("r", 9);
+                    .attr("r",8);
 
                 tooltip
-                    .style("visibility", "visible")
+                    .style("visibility","visible")
                     .html(
-                        "<b>" + categoryName + "</b><br>" +
+                        "<b>" + label + "</b><br>" +
                         "Year: " + d.year +
-                        "<br>CPI: " + d.value.toFixed(2)
+                        "<br>CPI: " +
+                        d.value.toFixed(2)
                     );
+
            })
+
            .on("mousemove", function(event){
 
                 tooltip
-                    .style("left", (event.pageX + 12) + "px")
-                    .style("top", (event.pageY - 25) + "px");
+                    .style(
+                        "left",
+                        (event.pageX+10)+"px"
+                    )
+                    .style(
+                        "top",
+                        (event.pageY-20)+"px"
+                    );
+
            })
+
            .on("mouseout", function(){
 
                 d3.select(this)
-                  .attr("r", 6);
+                    .attr("r",5);
 
                 tooltip
-                    .style("visibility", "hidden");
+                    .style("visibility","hidden");
            });
     }
 
-    // Tooltips for both lines
-    addTooltipDots(allItems, "All Items CPI", "blue");
-    addTooltipDots(energy, "Energy CPI", "orange");
+    /////////////////////////////////////////////////////
+    // BOTH SERIES HAVE TOOLTIPS
+    /////////////////////////////////////////////////////
+
+    addTooltipDots(
+        allItems,
+        "All Items CPI",
+        "blue"
+    );
+
+    addTooltipDots(
+        energy,
+        "Energy CPI",
+        "orange"
+    );
 }
 
 </script>
