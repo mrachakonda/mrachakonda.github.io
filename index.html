@@ -250,7 +250,7 @@ function drawScene2(){
 function drawScene3(){
 
     d3.select("#sceneTitle")
-      .html("<h2>Scene 3: Free-Form Exploration - Energy vs Overall CPI</h2>");
+      .html("<h2>Scene 3: Free-Form Exploration - Medical Care vs Overall CPI</h2>");
 
     d3.select("#storyText")
       .html(`
@@ -273,7 +273,7 @@ function drawScene3(){
 
       <p>
         Blue points represent <b>All Items CPI</b>. 
-        Orange points represent <b>Energy CPI</b>.
+        Orange points represent <b>Medical Care CPI</b>.
       </p>
       `);
 
@@ -377,12 +377,16 @@ function drawComparisonChart(){
     const allItems =
         getYearlyData("All items");
 
-    const energy =
-        getYearlyData("Energy");
+    
+const medical =
+    getYearlyData("Medical care");
 
-    console.log("All Items:", allItems.length);
-    console.log("Energy:", energy.length);
-    console.log("Energy Sample:", energy.slice(0,5));
+console.log(
+    "Medical Care Records:",
+    medical.length
+);
+
+
 
 
     const width = 900;
