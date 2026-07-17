@@ -126,6 +126,13 @@ Promise.all([
         };
     });
 
+    
+const uniqueItems =
+    [...new Set(joinedData.map(d => d.item_name))]
+    .sort();
+
+console.log(uniqueItems);
+
     renderScene();
 });
 
