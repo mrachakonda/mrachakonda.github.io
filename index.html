@@ -3,22 +3,71 @@
 <html>
 
 <head>
-    <title>Step 1 - Load Data</title>
+    <meta charset="utf-8">
+
+    <title>CPI Narrative Visualization</title>
 
     <script src="https://d3js.org/d3.v7.min.js"></script>
+
+    <style>
+        body {
+            font-family: Arial;
+            margin: 20px;
+        }
+
+        #chart {
+            margin-top: 20px;
+        }
+
+        .line {
+            fill: none;
+            stroke-width: 2;
+        }
+
+        .scene-text {
+            font-size: 18px;
+            margin-bottom: 10px;
+            padding: 10px;
+            background: #f5f5f5;
+        }
+
+        button {
+            padding: 10px;
+            margin: 5px;
+        }
+
+        #controls {
+            margin-top: 20px;
+        }
+
+        #exploreSection {
+            display: none;
+            margin-top: 15px;
+        }
+    </style>
 </head>
 
 <body>
 
-<h1>Step 1 - Load Data</h1>
+    <h1>Inflation Story Through CPI</h1>
 
-<div id="output">
-    Loading...
-</div>
+    <div id="narrativeText"></div>
+
+    <div>
+        <button id="prevBtn">Previous</button>
+        <button id="nextBtn">Next</button>
+    </div>
+
+    <div id="exploreSection">
+        <h3>Explore Categories</h3>
+
+        <select id="categorySelect" multiple size="10"></select>
+    </div>
+
+    <div id="chart"></div>
 
 <script>
 
-// Clean headers and values
 function cleanRow(d) {
 
     const clean = {};
@@ -32,90 +81,332 @@ function cleanRow(d) {
     return clean;
 }
 
+let chartData = [];
+let currentScene = 0;
 
 Promise.all([
     d3.tsv("data/cu_series.txt", cleanRow),
-    d3.tsv("data/cu_items.txt", cleanRow),
-    d3.tsv("data/cu_Allitems.txt", cleanRow)
+    d3.tsv("data/cu_Allitems.txt", cleanRow),
+    d3.tsv("data/cu_items.txt", cleanRow)
 ])
 
-.then(function([seriesData, itemData, valueData]) {
+.then(function([seriesData, valueData, itemData]) {
 
+    const itemLookup =
+        new Map(
+            itemData.map(d => [d.item_code, d])
+        );
 
-const itemLookup = new Map(
-    itemData.map(d => [d.item_code, d])
-);
+    const seriesLookup =
+        new Map(
+            seriesData.map(d => [d.series_id, d])
+        );
 
-const seriesLookup = new Map(
-    seriesData.map(d => [d.series_id, d])
-);
+    const joinedData =
+        valueData.map(value => {
 
+            const series =
+                seriesLookup.get(value.series_id);
 
-const joinedData = valueData.map(value => {
+            const item =
+                series
+                ? itemLookup.get(series.item_code)
+                : null;
 
-    const series = seriesLookup.get(value.series_id);
+            return {
 
-    const item = series
-        ? itemLookup.get(series.item_code)
-        : null;
+                series_id: value.series_id,
 
-    return {
+                year: +value.year,
 
-        // cu_Allitems
-        series_id: value.series_id,
-        year: value.year,
-        period: value.period,
-        value: +value.value,
+                period: value.period,
 
-        // cu_series
-        item_code: series ? series.item_code : "",
-        seasonal: series ? series.seasonal : "",
-        series_title: series ? series.series_title : "",
+                value: +value.value,
 
-        // cu_items
-        item_name: item ? item.item_name : "",
-        display_level: item ? item.display_level : ""
+                item_code: series?.item_code,
 
+                item_name: item?.item_name,
+
+                series_title: series?.series_title
+            };
+        });
+
+    chartData = joinedData;
+
+    buildDropdown();
+
+    drawScene();
+
+});
+
+function buildDropdown() {
+
+    const categories =
+        [...new Set(
+            chartData
+                .map(d => d.item_name)
+                .filter(Boolean)
+        )]
+        .sort();
+
+    const select =
+        document.getElementById("categorySelect");
+
+    categories.forEach(cat => {
+
+        const option =
+            document.createElement("option");
+
+        option.value = cat;
+        option.text = cat;
+
+        select.appendChild(option);
+
+    });
+
+    select.addEventListener(
+        "change",
+        drawExplorationChart
+    );
+}
+
+document
+.getElementById("nextBtn")
+.addEventListener("click", function() {
+
+    if(currentScene < 3) {
+
+        currentScene++;
+
+        drawScene();
+    }
+
+});
+
+document
+.getElementById("prevBtn")
+.addEventListener("click", function() {
+
+    if(currentScene > 0) {
+
+        currentScene--;
+
+        drawScene();
+    }
+
+});
+
+function drawScene() {
+
+    document
+        .getElementById("exploreSection")
+        .style.display =
+            currentScene === 3
+                ? "block"
+                : "none";
+
+    if(currentScene === 0) {
+
+        document.getElementById(
+            "narrativeText"
+        ).innerHTML =
+        "<div class='scene-text'>" +
+        "<b>Scene 1:</b> Since 1947, consumer prices have steadily increased." +
+        "</div>";
+
+        drawCategories([
+            "All items"
+        ]);
+    }
+
+    else if(currentScene === 1) {
+
+        document.getElementById(
+            "narrativeText"
+        ).innerHTML =
+        "<div class='scene-text'>" +
+        "<b>Scene 2:</b> Energy prices are far more volatile than overall inflation." +
+        "</div>";
+
+        drawCategories([
+            "All items",
+            "Energy"
+        ]);
+    }
+
+    else if(currentScene === 2) {
+
+        document.getElementById(
+            "narrativeText"
+        ).innerHTML =
+        "<div class='scene-text'>" +
+        "<b>Scene 3:</b> Core inflation behaves differently when food and energy are removed." +
+        "</div>";
+
+        drawCategories([
+            "All items",
+            "Energy",
+            "All items less food",
+            "All items less food and energy"
+        ]);
+    }
+
+    else {
+
+        document.getElementById(
+            "narrativeText"
+        ).innerHTML =
+        "<div class='scene-text'>" +
+        "<b>Scene 4:</b> Explore CPI categories yourself." +
+        "</div>";
+
+        drawExplorationChart();
+    }
+}
+
+function drawCategories(categories) {
+
+    const filtered =
+        chartData.filter(d =>
+            categories.includes(
+                d.item_name
+            )
+        );
+
+    renderChart(filtered);
+}
+
+function drawExplorationChart() {
+
+    const selected =
+        [...document
+            .getElementById("categorySelect")
+            .selectedOptions]
+        .map(d => d.value);
+
+    if(selected.length === 0)
+        return;
+
+    const filtered =
+        chartData.filter(d =>
+            selected.includes(
+                d.item_name
+            )
+        );
+
+    renderChart(filtered);
+}
+
+function renderChart(data) {
+
+    d3.select("#chart").html("");
+
+    const margin = {
+        top:40,
+        right:150,
+        bottom:50,
+        left:70
     };
-});
 
-let html = "";
+    const width = 1000;
+    const height = 500;
 
-html += "<h2>Join Validation</h2>";
+    data.forEach(d => {
 
-html += "Series Records: " + seriesData.length + "<br>";
-html += "Item Records: " + itemData.length + "<br>";
-html += "Value Records: " + valueData.length + "<br>";
-html += "Joined Records: " + joinedData.length + "<br><br>";
+        const month =
+            +d.period.replace("M","") - 1;
 
-html += "<h3>Columns</h3>";
+        d.date =
+            new Date(
+                d.year,
+                month,
+                1
+            );
+    });
 
-Object.keys(joinedData[0]).forEach(col => {
-    html += col + "<br>";
-});
+    const svg =
+        d3.select("#chart")
+          .append("svg")
+          .attr("width", width)
+          .attr("height", height);
 
-html += "<br><h3>First 5 Rows</h3>";
-html += "<pre>";
-html += JSON.stringify(joinedData.slice(0, 5), null, 2);
-html += "</pre>";
+    const x =
+        d3.scaleTime()
+          .domain(
+              d3.extent(
+                  data,
+                  d => d.date
+              )
+          )
+          .range([
+              margin.left,
+              width - margin.right
+          ]);
 
-document.getElementById("output").innerHTML = html;
+    const y =
+        d3.scaleLinear()
+          .domain([
+              d3.min(data,d=>d.value),
+              d3.max(data,d=>d.value)
+          ])
+          .nice()
+          .range([
+              height - margin.bottom,
+              margin.top
+          ]);
 
-})
+    svg.append("g")
+       .attr(
+           "transform",
+           `translate(0,${
+            height-margin.bottom
+           })`
+       )
+       .call(d3.axisBottom(x));
 
-.catch(function(error) {
+    svg.append("g")
+       .attr(
+           "transform",
+           `translate(${
+               margin.left
+           },0)`
+       )
+       .call(d3.axisLeft(y));
 
-    document.getElementById("output").innerHTML =
-        "<h2>Error Loading Files</h2><pre>" +
-        error +
-        "</pre>";
+    const categories =
+        d3.group(
+            data,
+            d => d.item_name
+        );
 
-    console.error(error);
+    const colors =
+        d3.scaleOrdinal(
+            d3.schemeTableau10
+        );
 
-});
+    let i = 0;
+
+    categories.forEach(
+        (values, category) => {
+
+        const line =
+            d3.line()
+              .x(d => x(d.date))
+              .y(d => y(d.value));
+
+        svg.append("path")
+           .datum(values)
+           .attr("class","line")
+           .attr("stroke",
+               colors(i++)
+           )
+           .attr("d", line);
+
+        });
+
+}
 
 </script>
 
 </body>
-
 </html>
