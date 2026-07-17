@@ -8,36 +8,36 @@
 <script src="https://d3js.org/d3.v7.min.js"></script>
 
 <style>
-
 body{
-    font-family:Arial;
-    margin:30px;
+    font-family: Arial;
+    margin: 30px;
 }
 
 #chart{
-    margin-top:20px;
+    margin-top: 20px;
 }
 
 button{
-    padding:10px 20px;
-    margin:5px;
+    padding: 10px 20px;
+    margin: 5px;
+    cursor: pointer;
 }
 
 .annotation{
-    fill:red;
-    font-size:14px;
-    font-weight:bold;
+    fill: red;
+    font-size: 14px;
+    font-weight: bold;
 }
 
 .tooltip{
-    position:absolute;
-    background:white;
-    border:1px solid black;
-    padding:8px;
-    visibility:hidden;
-    pointer-events:none;
+    position: absolute;
+    background: white;
+    border: 1px solid black;
+    padding: 8px;
+    visibility: hidden;
+    pointer-events: none;
+    font-size: 13px;
 }
-
 </style>
 </head>
 
@@ -47,9 +47,7 @@ button{
 
 <div id="sceneTitle"></div>
 <div id="storyText"></div>
-
 <div id="chart"></div>
-
 <div id="buttons"></div>
 
 <div class="tooltip"></div>
@@ -65,18 +63,22 @@ const state = {
 };
 
 let joinedData = [];
+let medicalData = [];
+
 
 //////////////////////////////////////////////////////////
-// LOAD DATA
+// CLEAN ROW FUNCTION
 //////////////////////////////////////////////////////////
 
 function cleanRow(d){
 
-    const clean={};
+    const clean = {};
 
     for(let key in d){
 
-        clean[key.trim()] =
+        const cleanKey = key.trim();
+
+        clean[cleanKey] =
             typeof d[key] === "string"
             ? d[key].trim()
             : d[key];
@@ -85,23 +87,46 @@ function cleanRow(d){
     return clean;
 }
 
+
+//////////////////////////////////////////////////////////
+// LOAD ALL 4 FILES
+//////////////////////////////////////////////////////////
+
 Promise.all([
     d3.tsv("data/cu_series.txt", cleanRow),
     d3.tsv("data/cu_Allitems.txt", cleanRow),
+    d3.tsv("data/cu_Medical.txt", cleanRow),
     d3.tsv("data/cu_items.txt", cleanRow)
 ])
+.then(function([
+    seriesData,
+    allItemsData,
+    medicalFileData,
+    itemData
+]){
 
-.then(function([seriesData, allItemsData, itemData]){
+    console.log("cu_series rows:", seriesData.length);
+    console.log("cu_Allitems rows:", allItemsData.length);
+    console.log("cu_Medical rows:", medicalFileData.length);
+    console.log("cu_items rows:", itemData.length);
+
+    medicalData = medicalFileData;
 
     const seriesLookup =
-        new Map(seriesData.map(d =>
-            [d.series_id.trim(), d]
-        ));
+        new Map(
+            seriesData.map(d => [
+                d.series_id.trim(),
+                d
+            ])
+        );
 
     const itemLookup =
-        new Map(itemData.map(d =>
-            [d.item_code.trim(), d]
-        ));
+        new Map(
+            itemData.map(d => [
+                d.item_code.trim(),
+                d
+            ])
+        );
 
     joinedData = allItemsData.map(d => {
 
@@ -113,31 +138,62 @@ Promise.all([
             ? itemLookup.get(series.item_code.trim())
             : null;
 
-        return{
-
-            year:+d.year,
-            value:+d.value,
-            series_id:d.series_id,
-
+        return {
+            year: +d.year,
+            value: +d.value,
+            series_id: d.series_id ? d.series_id.trim() : "",
             item_name:
                 item
-                ? item.item_name
+                ? item.item_name.trim()
                 : "Unknown"
         };
-    });
+    })
+    .filter(d =>
+        !isNaN(d.year) &&
+        !isNaN(d.value) &&
+        d.item_name !== "Unknown"
+    );
 
-    
-const uniqueItems =
-    [...new Set(joinedData.map(d => d.item_name))]
-    .sort();
+    console.log("Joined records:", joinedData.length);
 
-console.log(uniqueItems);
+    console.log(
+        "All Items yearly records:",
+        getYearlyData("All items").length
+    );
+
+    console.log(
+        "Medical yearly records:",
+        getMedicalYearlyData().length
+    );
 
     renderScene();
+
+})
+.catch(function(error){
+
+    console.error("Error loading data files:", error);
+
+    d3.select("#sceneTitle")
+      .html("<h2>Error Loading Files</h2>");
+
+    d3.select("#storyText")
+      .html(`
+        <p>Please confirm these files exist inside the <b>data</b> folder:</p>
+
+        <ul>
+            <li>data/cu_series.txt</li>
+            <li>data/cu_Allitems.txt</li>
+            <li>data/cu_Medical.txt</li>
+            <li>data/cu_items.txt</li>
+        </ul>
+
+        <p><b>Error:</b> ${error}</p>
+      `);
 });
 
+
 //////////////////////////////////////////////////////////
-// YEARLY AVERAGE
+// YEARLY AVERAGE FOR JOINED CPI DATA
 //////////////////////////////////////////////////////////
 
 function getYearlyData(itemName){
@@ -148,19 +204,44 @@ function getYearlyData(itemName){
             d => d.item_name === itemName
         ),
 
-        v => d3.mean(v,d=>d.value),
+        v => d3.mean(v, d => d.value),
 
         d => d.year
 
     )
-
-    .map(([year,value]) => ({
-        year:+year,
-        value:value
+    .map(([year, value]) => ({
+        year: +year,
+        value: value
     }))
-
-    .sort((a,b)=>a.year-b.year);
+    .sort((a,b) => a.year - b.year);
 }
+
+
+//////////////////////////////////////////////////////////
+// YEARLY AVERAGE FOR MEDICAL FILE
+//////////////////////////////////////////////////////////
+
+function getMedicalYearlyData(){
+
+    return d3.rollups(
+
+        medicalData.filter(d =>
+            !isNaN(+d.year) &&
+            !isNaN(+d.value)
+        ),
+
+        v => d3.mean(v, d => +d.value),
+
+        d => +d.year
+
+    )
+    .map(([year, value]) => ({
+        year: +year,
+        value: value
+    }))
+    .sort((a,b) => a.year - b.year);
+}
+
 
 //////////////////////////////////////////////////////////
 // SCENE CONTROLLER
@@ -171,19 +252,17 @@ function renderScene(){
     d3.select("#chart").html("");
     d3.select("#buttons").html("");
 
-    if(state.scene===1){
-
+    if(state.scene === 1){
         drawScene1();
-
-    }else if(state.scene===2){
-
+    }
+    else if(state.scene === 2){
         drawScene2();
-
-    }else{
-
+    }
+    else if(state.scene === 3){
         drawScene3();
     }
 }
+
 
 //////////////////////////////////////////////////////////
 // SCENE 1
@@ -195,7 +274,17 @@ function drawScene1(){
       .html("<h2>Scene 1: Long-Term Inflation Trend</h2>");
 
     d3.select("#storyText")
-      .html("<p>Consumer prices have increased steadily since 1947.</p>");
+      .html(`
+        <p>
+        This scene introduces the overall Consumer Price Index using
+        the <b>All Items CPI</b> category.
+        </p>
+
+        <p>
+        The main message is that consumer prices have increased steadily
+        over time.
+        </p>
+      `);
 
     const data =
         getYearlyData("All items");
@@ -203,14 +292,14 @@ function drawScene1(){
     drawChart(
         data,
         "All Items CPI",
-        "Prices increased steadily since 1947",
-        "#1f77b4",
-        false
+        "Prices increased steadily over time",
+        "#1f77b4"
     );
 
     d3.select("#buttons")
-      .html("<button onclick='nextScene()'>Next</button>");
+      .html(`<button onclick="nextScene()">Next</button>`);
 }
+
 
 //////////////////////////////////////////////////////////
 // SCENE 2
@@ -219,21 +308,25 @@ function drawScene1(){
 function drawScene2(){
 
     d3.select("#sceneTitle")
-      .html("<h2>Scene 2: Post‑2020 Inflation</h2>");
+      .html("<h2>Scene 2: Post-2020 Inflation Increase</h2>");
 
     d3.select("#storyText")
-      .html("<p>Inflation accelerated significantly after 2020.</p>");
+      .html(`
+        <p>
+        This scene zooms into the recent period beginning in 2018.
+        It highlights the faster increase in inflation after 2020.
+        </p>
+      `);
 
     const data =
         getYearlyData("All items")
-        .filter(d=>d.year>=2018);
+        .filter(d => d.year >= 2018);
 
     drawChart(
         data,
         "All Items CPI Since 2018",
         "Inflation accelerated after 2020",
-        "red",
-        false
+        "red"
     );
 
     d3.select("#buttons")
@@ -243,6 +336,7 @@ function drawScene2(){
       `);
 }
 
+
 //////////////////////////////////////////////////////////
 // SCENE 3
 //////////////////////////////////////////////////////////
@@ -250,31 +344,32 @@ function drawScene2(){
 function drawScene3(){
 
     d3.select("#sceneTitle")
-      .html("<h2>Scene 3: Free-Form Exploration - Medical Care vs Overall CPI</h2>");
+      .html("<h2>Scene 3: Medical Care Expenses vs Overall CPI</h2>");
 
     d3.select("#storyText")
       .html(`
-      <p>
-        This final scene opens the Martini Glass structure for free-form exploration.
-      </p>
+        <p>
+        This final scene opens the Martini Glass structure for free-form
+        exploration. It compares overall inflation with medical care expenses.
+        </p>
 
-      <div style="
-          background:#fff8e6;
-          border-left:6px solid orange;
-          padding:12px;
-          margin-top:10px;
-          margin-bottom:10px;
-          font-size:16px;
-      ">
-        <b>Free-form Interaction Enabled:</b><br>
-        Hover over any circular data point on either line to see the CPI category,
-        year, and CPI value.
-      </div>
+        <div style="
+            background:#fff8e6;
+            border-left:6px solid orange;
+            padding:12px;
+            margin-top:10px;
+            margin-bottom:10px;
+            font-size:16px;
+        ">
+            <b>Free-form Interaction Enabled:</b><br>
+            Hover over any circular data point on either line to see the CPI category,
+            year, and CPI value.
+        </div>
 
-      <p>
-        Blue points represent <b>All Items CPI</b>. 
+        <p>
+        Blue points represent <b>All Items CPI</b>.
         Orange points represent <b>Medical Care CPI</b>.
-      </p>
+        </p>
       `);
 
     drawComparisonChart();
@@ -285,21 +380,29 @@ function drawScene3(){
       `);
 }
 
+
 //////////////////////////////////////////////////////////
-// NEXT/BACK TRIGGERS
+// NEXT / BACK TRIGGERS
 //////////////////////////////////////////////////////////
 
 function nextScene(){
 
-    state.scene++;
+    if(state.scene < 3){
+        state.scene++;
+    }
+
     renderScene();
 }
 
 function prevScene(){
 
-    state.scene--;
+    if(state.scene > 1){
+        state.scene--;
+    }
+
     renderScene();
 }
+
 
 //////////////////////////////////////////////////////////
 // SINGLE LINE CHART
@@ -309,89 +412,141 @@ function drawChart(
     data,
     title,
     annotationText,
-    color,
-    enableTooltips
+    color
 ){
 
-    const width=900;
-    const height=500;
-    const margin={top:60,right:40,bottom:60,left:70};
+    if(data.length === 0){
+
+        d3.select("#chart")
+          .html("<p>No data available for this scene.</p>");
+
+        return;
+    }
+
+    const width = 900;
+    const height = 500;
+    const margin = {
+        top: 60,
+        right: 40,
+        bottom: 60,
+        left: 70
+    };
 
     const svg =
         d3.select("#chart")
         .append("svg")
-        .attr("width",width)
-        .attr("height",height);
+        .attr("width", width)
+        .attr("height", height);
 
-    const x=
+    const x =
         d3.scaleLinear()
-        .domain(d3.extent(data,d=>d.year))
-        .range([margin.left,width-margin.right]);
+        .domain(d3.extent(data, d => d.year))
+        .range([margin.left, width - margin.right]);
 
-    const y=
+    const y =
         d3.scaleLinear()
-        .domain([0,d3.max(data,d=>d.value)])
+        .domain([0, d3.max(data, d => d.value)])
         .nice()
-        .range([height-margin.bottom,margin.top]);
+        .range([height - margin.bottom, margin.top]);
 
-    const line=
+    const line =
         d3.line()
-        .x(d=>x(d.year))
-        .y(d=>y(d.value));
+        .x(d => x(d.year))
+        .y(d => y(d.value));
 
     svg.append("path")
        .datum(data)
-       .attr("fill","none")
-       .attr("stroke",color)
-       .attr("stroke-width",3)
-       .attr("d",line);
+       .attr("fill", "none")
+       .attr("stroke", color)
+       .attr("stroke-width", 3)
+       .attr("d", line);
 
     svg.append("g")
-       .attr("transform",
-           `translate(0,${height-margin.bottom})`)
+       .attr(
+           "transform",
+           `translate(0,${height - margin.bottom})`
+       )
        .call(
            d3.axisBottom(x)
-           .tickFormat(d3.format("d"))
+             .tickFormat(d3.format("d"))
        );
 
     svg.append("g")
-       .attr("transform",
-            `translate(${margin.left},0)`)
+       .attr(
+           "transform",
+           `translate(${margin.left},0)`
+       )
        .call(d3.axisLeft(y));
 
     svg.append("text")
-       .attr("x",250)
-       .attr("y",70)
-       .attr("class","annotation")
+       .attr("x", width / 2)
+       .attr("y", 30)
+       .attr("text-anchor", "middle")
+       .style("font-size", "18px")
+       .style("font-weight", "bold")
+       .text(title);
+
+    svg.append("text")
+       .attr("x", 230)
+       .attr("y", 75)
+       .attr("class", "annotation")
        .text(annotationText);
+
+    svg.append("text")
+       .attr("x", width / 2)
+       .attr("y", height - 15)
+       .attr("text-anchor", "middle")
+       .style("font-weight", "bold")
+       .text("Year");
+
+    svg.append("text")
+       .attr("transform", "rotate(-90)")
+       .attr("x", -height / 2)
+       .attr("y", 20)
+       .attr("text-anchor", "middle")
+       .style("font-weight", "bold")
+       .text("CPI Value");
 }
 
+
 //////////////////////////////////////////////////////////
-// SCENE 3 CHART WITH TOOLTIPS
+// SCENE 3 COMPARISON CHART WITH TOOLTIPS
 //////////////////////////////////////////////////////////
 
 function drawComparisonChart(){
 
-    
-
     const allItems =
         getYearlyData("All items");
 
-    
-const medical =
-    getYearlyData("Medical care");
+    const medical =
+        getMedicalYearlyData();
 
-console.log(
-    "Medical Care Records:",
-    medical.length
-);
+    console.log("All Items:", allItems.length);
+    console.log("Medical Care:", medical.length);
+    console.table(medical.slice(0,5));
 
+    if(allItems.length === 0 || medical.length === 0){
 
+        d3.select("#chart")
+          .html(`
+            <p>
+            Data is missing for Scene 3.
+            Please check that <b>cu_Allitems.txt</b> and <b>cu_Medical.txt</b>
+            are inside the data folder and contain year and value columns.
+            </p>
+          `);
 
+        return;
+    }
 
     const width = 900;
     const height = 500;
-    const margin = {top:60, right:90, bottom:70, left:70};
+    const margin = {
+        top: 60,
+        right: 90,
+        bottom: 70,
+        left: 70
+    };
 
     const svg =
         d3.select("#chart")
@@ -418,7 +573,10 @@ console.log(
         .x(d => x(d.year))
         .y(d => y(d.value));
 
-    // All Items line
+    /////////////////////////////////////////////////////
+    // LINES
+    /////////////////////////////////////////////////////
+
     svg.append("path")
        .datum(allItems)
        .attr("fill", "none")
@@ -426,7 +584,6 @@ console.log(
        .attr("stroke-width", 3)
        .attr("d", line);
 
-    // medical line
     svg.append("path")
        .datum(medical)
        .attr("fill", "none")
@@ -434,20 +591,31 @@ console.log(
        .attr("stroke-width", 3)
        .attr("d", line);
 
-    // X axis
+    /////////////////////////////////////////////////////
+    // AXES
+    /////////////////////////////////////////////////////
+
     svg.append("g")
-       .attr("transform", `translate(0,${height - margin.bottom})`)
+       .attr(
+           "transform",
+           `translate(0,${height - margin.bottom})`
+       )
        .call(
-          d3.axisBottom(x)
-          .tickFormat(d3.format("d"))
+           d3.axisBottom(x)
+             .tickFormat(d3.format("d"))
        );
 
-    // Y axis
     svg.append("g")
-       .attr("transform", `translate(${margin.left},0)`)
+       .attr(
+           "transform",
+           `translate(${margin.left},0)`
+       )
        .call(d3.axisLeft(y));
 
-    // X axis label
+    /////////////////////////////////////////////////////
+    // AXIS LABELS
+    /////////////////////////////////////////////////////
+
     svg.append("text")
        .attr("x", width / 2)
        .attr("y", height - 20)
@@ -455,7 +623,6 @@ console.log(
        .style("font-weight", "bold")
        .text("Year");
 
-    // Y axis label
     svg.append("text")
        .attr("transform", "rotate(-90)")
        .attr("x", -height / 2)
@@ -464,7 +631,10 @@ console.log(
        .style("font-weight", "bold")
        .text("CPI Value");
 
-    // Chart title
+    /////////////////////////////////////////////////////
+    // TITLE
+    /////////////////////////////////////////////////////
+
     svg.append("text")
        .attr("x", width / 2)
        .attr("y", 30)
@@ -473,52 +643,61 @@ console.log(
        .style("font-weight", "bold")
        .text("Medical Care CPI Compared with Overall CPI");
 
-    // Persistent annotation
+    /////////////////////////////////////////////////////
+    // ANNOTATION
+    /////////////////////////////////////////////////////
+
     svg.append("rect")
-       .attr("x", 210)
+       .attr("x", 190)
        .attr("y", 48)
-       .attr("width", 390)
+       .attr("width", 500)
        .attr("height", 34)
        .attr("fill", "#fff4f4")
        .attr("stroke", "red")
        .attr("rx", 5);
 
     svg.append("text")
-       .attr("x", 225)
+       .attr("x", 205)
        .attr("y", 70)
        .attr("class", "annotation")
-       .text("Medical Care is significantly more volatile than overall CPI");
+       .text("Medical care expenses increased steadily over time");
 
-    // Legend
+    /////////////////////////////////////////////////////
+    // LEGEND
+    /////////////////////////////////////////////////////
+
     svg.append("circle")
-       .attr("cx", width - 230)
+       .attr("cx", width - 240)
        .attr("cy", 105)
        .attr("r", 6)
        .attr("fill", "blue");
 
     svg.append("text")
-       .attr("x", width - 215)
+       .attr("x", width - 220)
        .attr("y", 110)
        .text("All Items CPI");
 
     svg.append("circle")
-       .attr("cx", width - 230)
-       .attr("cy", 130)
+       .attr("cx", width - 240)
+       .attr("cy", 132)
        .attr("r", 6)
        .attr("fill", "orange");
 
     svg.append("text")
-       .attr("x", width - 215)
-       .attr("y", 135)
+       .attr("x", width - 220)
+       .attr("y", 137)
        .text("Medical Care CPI");
+
+    /////////////////////////////////////////////////////
+    // TOOLTIP
+    /////////////////////////////////////////////////////
 
     const tooltip =
         d3.select(".tooltip");
 
-    // Reusable tooltip dots function
     function addTooltipDots(data, categoryName, dotColor){
 
-        svg.selectAll("." + categoryName.replaceAll(" ", "") + "Dot")
+        svg.selectAll("." + categoryName.replace(/\s/g, "") + "Dot")
            .data(data)
            .enter()
            .append("circle")
@@ -529,6 +708,7 @@ console.log(
            .attr("stroke", "black")
            .attr("stroke-width", 1)
            .style("cursor", "pointer")
+
            .on("mouseover", function(event, d){
 
                 d3.select(this)
@@ -542,12 +722,14 @@ console.log(
                         "<br>CPI: " + d.value.toFixed(2)
                     );
            })
+
            .on("mousemove", function(event){
 
                 tooltip
                     .style("left", (event.pageX + 12) + "px")
                     .style("top", (event.pageY - 25) + "px");
            })
+
            .on("mouseout", function(){
 
                 d3.select(this)
@@ -558,9 +740,17 @@ console.log(
            });
     }
 
-    // Tooltips for both lines
-    addTooltipDots(allItems, "All Items CPI", "blue");
-    addTooltipDots(medical, "Medical Care CPI", "orange");
+    addTooltipDots(
+        allItems,
+        "All Items CPI",
+        "blue"
+    );
+
+    addTooltipDots(
+        medical,
+        "Medical Care CPI",
+        "orange"
+    );
 }
 
 </script>
