@@ -96,19 +96,22 @@ Promise.all([
     d3.tsv("data/cu_series.txt", cleanRow),
     d3.tsv("data/cu_Allitems.txt", cleanRow),
     d3.tsv("data/cu_Medical.txt", cleanRow),
-    d3.tsv("data/cu_items.txt", cleanRow)
+    d3.tsv("data/cu_items.txt", cleanRow),
+    d3.tsv("data/data/cu_USHousing.txt", cleanRow)
 ])
 .then(function([
     seriesData,
     allItemsData,
     medicalFileData,
-    itemData
+    itemData,
+    housing
 ]){
 
     console.log("cu_series rows:", seriesData.length);
     console.log("cu_Allitems rows:", allItemsData.length);
     console.log("cu_Medical rows:", medicalFileData.length);
     console.log("cu_items rows:", itemData.length);
+    console.log("housing rows:", housing.length);
 
     medicalData = medicalFileData;
 
@@ -164,6 +167,11 @@ Promise.all([
     console.log(
         "Medical yearly records:",
         getMedicalYearlyData().length
+    );
+
+     console.log(
+        "Housing yearly records:",
+        getHousingYearlyData().length
     );
 
     renderScene();
@@ -242,6 +250,31 @@ function getMedicalYearlyData(){
     .sort((a,b) => a.year - b.year);
 }
 
+//////////////////////////////////////////////////////////
+// YEARLY AVERAGE FOR Housing FILE
+//////////////////////////////////////////////////////////
+
+function getHousingYearlyData(){
+
+    return d3.rollups(
+
+        medicalData.filter(d =>
+            !isNaN(+d.year) &&
+            !isNaN(+d.value)
+        ),
+
+        v => d3.mean(v, d => +d.value),
+
+        d => +d.year
+
+    )
+    .map(([year, value]) => ({
+        year: +year,
+        value: value
+    }))
+    .sort((a,b) => a.year - b.year);
+}
+    
 
 //////////////////////////////////////////////////////////
 // SCENE CONTROLLER
