@@ -381,39 +381,43 @@ function drawScene3(){
     d3.select("#sceneTitle")
       .html("<h2>Category Comparison vs Overall CPI</h2>");
 
-    d3.select("#storyText")
-      .html(`
-        <p>
-        This final scene opens the Martini Glass structure for free-form
-        exploration.
-        </p>
+  
+d3.select("#storyText")
+  .html(`
+    <ul>
+      <li>Compare Overall CPI with Medical Care or Housing CPI.</li>
+      <li>Medical Care inflation has generally increased faster than Overall CPI.</li>
+      <li>Housing inflation follows a different long-term pattern.</li>
+      <li>Use the dropdown and tooltips to explore category-specific inflation trends.</li>
+    </ul>
 
-        <div style="
-            background:#fff8e6;
-            border-left:6px solid orange;
-            padding:12px;
-            margin-top:10px;
-            margin-bottom:10px;
-            font-size:16px;
-        ">
-            <b>Free-form Interaction Enabled:</b><br><br>
+    <div style="
+        background:#fff8e6;
+        border-left:6px solid orange;
+        padding:12px;
+        margin-top:10px;
+        margin-bottom:10px;
+        font-size:16px;
+    ">
+        <b>Free-form Interaction Enabled:</b><br><br>
 
-            Compare Overall CPI with:
+        Compare Overall CPI with:
 
-            <select id="comparisonSelect">
-                <option value="medical">
-                    Medical Care CPI
-                </option>
-                <option value="housing">
-                    Housing CPI
-                </option>
-            </select>
+        <select id="comparisonSelect">
+            <option value="medical">
+                Medical Care CPI
+            </option>
 
-            <br><br>
+            <option value="housing">
+                Housing CPI
+            </option>
+        </select>
 
-            Hover over points to see detailed CPI values.
-        </div>
-      `);
+        <br><br>
+
+        Hover over points to see detailed CPI values.
+    </div>
+`);
 
     // Draw Medical by default
     drawComparisonChart("medical");
@@ -730,11 +734,13 @@ function drawComparisonChart(category){
        .attr("x", 205)
        .attr("y", 70)
        .attr("class", "annotation")
-       .text(
-		category === "housing"
-		? "Housing costs increased steadily over time"
-		: "Medical care expenses increased steadily over time"
+      
+.text(
+    category === "housing"
+    ? "Housing CPI generally tracked Overall CPI but followed a different long-term path."
+    : "Medical Care CPI increased faster than Overall CPI over time."
 );
+
 
     /////////////////////////////////////////////////////
     // LEGEND
@@ -742,7 +748,7 @@ function drawComparisonChart(category){
 
     svg.append("circle")
        .attr("cx", width - 240)
-       .attr("cy", 105)
+       .attr("cy", 140)
        .attr("r", 6)
        .attr("fill", "blue");
 
@@ -753,7 +759,7 @@ function drawComparisonChart(category){
 
     svg.append("circle")
        .attr("cx", width - 240)
-       .attr("cy", 132)
+       .attr("cy", 170)
        .attr("r", 6)
        .attr("fill", "orange");
 
