@@ -377,13 +377,13 @@ function drawScene2(){
 function drawScene3(){
 
     d3.select("#sceneTitle")
-      .html("<h2>Medical Care Expenses vs Overall CPI</h2>");
+      .html("<h2>Category Comparison vs Overall CPI</h2>");
 
     d3.select("#storyText")
       .html(`
         <p>
         This final scene opens the Martini Glass structure for free-form
-        exploration. It compares overall inflation with medical care expenses.
+        exploration.
         </p>
 
         <div style="
@@ -394,25 +394,45 @@ function drawScene3(){
             margin-bottom:10px;
             font-size:16px;
         ">
-            <b>Free-form Interaction Enabled:</b><br>
-            Hover over any circular data point on either line to see the CPI category,
-            year, and CPI value.
-        </div>
+            <b>Free-form Interaction Enabled:</b><br><br>
 
-        <p>
-        Blue points represent <b>All Items CPI</b>.
-        Orange points represent <b>Medical Care CPI</b>.
-        </p>
+            Compare Overall CPI with:
+
+            <select id="comparisonSelect">
+                <option value="medical">
+                    Medical Care CPI
+                </option>
+                <option value="housing">
+                    Housing CPI
+                </option>
+            </select>
+
+            <br><br>
+
+            Hover over points to see detailed CPI values.
+        </div>
       `);
 
-    drawComparisonChart();
+    // Draw Medical by default
+    drawComparisonChart("medical");
+
+    // Dropdown trigger
+    d3.select("#comparisonSelect")
+      .on("change", function(){
+
+            const selected =
+                d3.select(this).property("value");
+
+            d3.select("#chart").html("");
+
+            drawComparisonChart(selected);
+      });
 
     d3.select("#buttons")
       .html(`
-        <button onclick="prevScene()">Back</button>
+          <button onclick="prevScene()">Back</button>
       `);
 }
-
 
 //////////////////////////////////////////////////////////
 // NEXT / BACK TRIGGERS
