@@ -64,6 +64,7 @@ const state = {
 
 let joinedData = [];
 let medicalData = [];
+let housingData = [];
 
 
 //////////////////////////////////////////////////////////
@@ -104,16 +105,17 @@ Promise.all([
     allItemsData,
     medicalFileData,
     itemData,
-    housing
+    housingFileData
 ]){
 
     console.log("cu_series rows:", seriesData.length);
     console.log("cu_Allitems rows:", allItemsData.length);
     console.log("cu_Medical rows:", medicalFileData.length);
     console.log("cu_items rows:", itemData.length);
-    console.log("housing rows:", housing.length);
+    console.log("housing rows:", housingFileData.length);
 
     medicalData = medicalFileData;
+	housingData = housingFileData;
 
     const seriesLookup =
         new Map(
@@ -258,7 +260,7 @@ function getHousingYearlyData(){
 
     return d3.rollups(
 
-        medicalData.filter(d =>
+        housingData.filter(d =>
             !isNaN(+d.year) &&
             !isNaN(+d.value)
         ),
@@ -566,19 +568,35 @@ function drawChart(
 // SCENE 3 COMPARISON CHART WITH TOOLTIPS
 //////////////////////////////////////////////////////////
 
-function drawComparisonChart(){
+function drawComparisonChart(category){
 
     const allItems =
         getYearlyData("All items");
 
-    const medical =
-        getMedicalYearlyData();
+    
+	let selectedData;
+	let selectedLabel;
+
+	if(category === "housing") {
+
+		selectedData = getHousingYearlyData();
+		selectedLabel = "Housing CPI";
+
+	} else {
+
+		selectedData = getMedicalYearlyData();
+		selectedLabel = "Medical Care CPI";
+	}
+
+
 
     console.log("All Items:", allItems.length);
     console.log("Medical Care:", medical.length);
     console.table(medical.slice(0,5));
+	console.log("Housing:", housing.length);
+    console.table(housing.slice(0,5));
 
-    if(allItems.length === 0 || medical.length === 0){
+    if(allItems.length === 0 || medical.length === 0) || housing.length === 0) {
 
         d3.select("#chart")
           .html(`
@@ -608,7 +626,7 @@ function drawComparisonChart(){
         .attr("height", height);
 
     const combined =
-        [...allItems, ...medical];
+        [...allItems, ...selectedData];
 
     const x =
         d3.scaleLinear()
@@ -638,7 +656,7 @@ function drawComparisonChart(){
        .attr("d", line);
 
     svg.append("path")
-       .datum(medical)
+       .datum(selectedData)
        .attr("fill", "none")
        .attr("stroke", "orange")
        .attr("stroke-width", 3)
@@ -694,7 +712,7 @@ function drawComparisonChart(){
        .attr("text-anchor", "middle")
        .style("font-size", "18px")
        .style("font-weight", "bold")
-       .text("Medical Care CPI Compared with Overall CPI");
+       .text(selectedLabel + " Compared with Overall CPI");
 
     /////////////////////////////////////////////////////
     // ANNOTATION
@@ -713,7 +731,11 @@ function drawComparisonChart(){
        .attr("x", 205)
        .attr("y", 70)
        .attr("class", "annotation")
-       .text("Medical care expenses increased steadily over time");
+       .text(
+		category === "housing"
+		? "Housing costs increased steadily over time"
+		: "Medical care expenses increased steadily over time"
+);
 
     /////////////////////////////////////////////////////
     // LEGEND
@@ -739,8 +761,8 @@ function drawComparisonChart(){
     svg.append("text")
        .attr("x", width - 220)
        .attr("y", 137)
-       .text("Medical Care CPI");
-
+       .text(selectedLabel);
+	   
     /////////////////////////////////////////////////////
     // TOOLTIP
     /////////////////////////////////////////////////////
@@ -799,11 +821,13 @@ function drawComparisonChart(){
         "blue"
     );
 
-    addTooltipDots(
-        medical,
-        "Medical Care CPI",
-        "orange"
-    );
+    
+addTooltipDots(
+    selectedData,
+    selectedLabel,
+    "orange"
+);
+
 }
 
 </script>
