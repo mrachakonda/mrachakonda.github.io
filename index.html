@@ -591,12 +591,11 @@ function drawComparisonChart(category){
 
 
     console.log("All Items:", allItems.length);
-    console.log("Medical Care:", medical.length);
-    console.table(medical.slice(0,5));
-	console.log("Housing:", housing.length);
-    console.table(housing.slice(0,5));
+    console.log("SelectedData:", selectedData.length);
+    console.table(SelectedData.slice(0,5));
+	console.log("Selected Label" : selectedLabel)
 
-    if(allItems.length === 0 || medical.length === 0) || housing.length === 0) {
+    if(allItems.length === 0 || SelectedData.length === 0) {
 
         d3.select("#chart")
           .html(`
