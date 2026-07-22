@@ -746,16 +746,18 @@ function drawComparisonChart(category){
     // LEGEND
     /////////////////////////////////////////////////////
 
-    svg.append("circle")
-       .attr("cx", width - 240)
-       .attr("cy", 125)
-       .attr("r", 6)
-       .attr("fill", "blue");
+   
+svg.append("circle")
+   .attr("cx", width - 350)
+   .attr("cy", 105)
+   .attr("r", 8)
+   .style("fill", "blue");
 
-    svg.append("text")
-       .attr("x", width - 350)
-       .attr("y", 110)
-       .text("All Items CPI");
+svg.append("text")
+   .attr("x", width - 320)
+   .attr("y", 110)
+   .text("All Items CPI");
+
 
     svg.append("circle")
        .attr("cx", width - 240)
